@@ -307,7 +307,7 @@ it on a trusted path:
 
 - a LAN;
 - a VPN or overlay you run yourself (WireGuard, Tailscale, Netbird);
-- an HTTPS tunnel — a [Vulos Relay](https://github.com/vul-os/vulos-relay) is
+- an HTTPS tunnel — [Ephor](https://github.com/vul-os/ephor) is
   one option, and is an **optional convenience only**. Nothing about sync
   depends on it, and a relay is a content-visible L7 hop: it terminates TLS and
   can see what passes through. Treat it as reachability, not confidentiality.

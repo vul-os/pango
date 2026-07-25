@@ -53,7 +53,7 @@ first:
 2. **A VPN or overlay you run** — WireGuard, Tailscale, Netbird. The node stays
    on loopback or a private interface; the overlay carries reachability.
 3. **A reverse proxy you run**, terminating TLS with your own certificate.
-4. **A tunnel.** [Vulos Relay](https://github.com/vul-os/vulos-relay) is one
+4. **A tunnel.** [Ephor](https://github.com/vul-os/ephor) is one
    option and is a **purely optional convenience** — a hard runtime dependency
    on it is forbidden by the product standard. Be clear-eyed about what it is: a
    relay is a content-visible L7 hop that terminates TLS. It buys reachability,

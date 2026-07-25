@@ -1,10 +1,12 @@
 # Sync
 
-> [!WARNING]
-> **📐 Designed, not implemented.** No sync code exists in this repository yet.
-> This chapter is the protocol specification the rebuild is being written
-> against — it is a design document, not a description of running software.
-> Where a decision is still open, it says so rather than picking silently.
+> [!NOTE]
+> **Shipped.** `internal/sync` implements the protocol this chapter describes
+> — the HLC oplog, the HTTP push/pull transport, mutual Ed25519 authentication
+> and the folder transport — and it is exercised by `internal/sync`'s test
+> suite (two-node and three-node reconvergence, replay ordering, transport
+> auth, batch caps). Where a decision is still open, this chapter says so
+> rather than picking silently; §11 lists what remains genuinely open.
 
 PropFix's sync is built around one requirement from
 [ARCHITECTURE.md](ARCHITECTURE.md) §2: **a node must keep working with no
@@ -79,7 +81,7 @@ it before adding a table.
 | `job_event` | **Union.** Append-only. | A thread is the union of what everyone said. Nothing is ever retracted, only superseded by a later event. |
 | `finding` | **Union.** Append-only per inspection item. | A condition capture is an observation with a time and an author. It is never edited. |
 | `job` (the record) | **Single writer** — the owning organisation of the building. | See §5. |
-| Job number sequence | **Single writer**, namespaced per building. | Numbers allocate offline with no coordination. |
+| Job number sequence | **Single writer**, namespaced per building; reconciled at apply time if two writers ever collide. | Numbers allocate offline with no coordination — see §5's "Job numbers under divergence". |
 | Assignment | **Single writer.** | The only contended decision in the product. |
 | Inspection scheduling | **Single writer.** | Same authority. |
 | `building`, `unit`, `party`, `inspection_template` | **Last-writer-wins** per row, by HLC. | Reference data. The newest edit wins on every node. |
@@ -146,6 +148,55 @@ A contractor's node can *propose* — progress events, costs, findings, all
 append-only — but it does not reassign a job. If it needs to hand work back, it
 says so as an event and the owning organisation acts on it.
 
+### Job numbers under divergence
+
+"Single writer" above describes the *organisation* that owns a building, not a
+single physical device. The same organisation's office node and field tablet
+are both legitimate writers, and nothing stops both from raising the FIRST job
+against a building neither has synced yet while both are offline — each mints
+number 1 with no way to know the other exists. A per-building sequence
+allocated by whichever node happens to be writing cannot be globally unique
+without coordination, and coordination between offline nodes is exactly what
+this architecture exists to avoid.
+
+Rather than journal the counter itself — which would not have prevented this
+specific collision anyway, since both nodes allocate before either has heard
+from the other — numbers are made collision-free by construction at the point
+a collision actually becomes visible: when the two rows meet during sync.
+`store/migrations/201_job_number_dedupe.sql` adds a trigger that fires once,
+on genuine insertion of a job row (never on an ordinary status or assignment
+update), and:
+
+1. records the row's true creation HLC in a column of its own
+   (`created_hlc`) — never `job.hlc`, which is overwritten by later status and
+   assignment writes, and would make the arbitration depend on unrelated sync
+   timing rather than on when the job was actually created;
+2. if the insert collides with a row that already claims the same number for
+   the same building, bumps whichever of the two is causally **later** by that
+   creation stamp — the same author-key tie-break this system uses everywhere
+   else (§2) — to one more than the current maximum for that building, which
+   is by definition free.
+
+Because the comparison uses two immutable, already-present values, every peer
+that ends up holding both rows makes the same decision and lands on the same
+number, regardless of which order the two rows reached it in. This converges
+correctly for the case that actually happens — two writers — the same way
+every other replicated write in this system does.
+
+**Acknowledged limitation.** For three or more nodes that each independently
+raise the FIRST job against the very same, never-before-synced building while
+all mutually offline, the specific number a "losing" job is bumped to can
+depend on the order the rows arrive at a given peer, so different peers are
+not guaranteed to land on identical numbers for the same job in that
+three-way-or-more scenario (every peer is still guaranteed distinct numbers
+and no error — the reconvergence itself never fails). This is recorded
+honestly rather than solved by a heavier mechanism that would have to
+retroactively renumber already-settled, already-communicated jobs to
+guarantee full order-independence — which would trade a rare, cosmetic
+inconsistency for the exact failure mode job numbers exist to avoid (§13 of
+[ARCHITECTURE.md](ARCHITECTURE.md): a corrected feature that silently breaks a
+different guarantee is not a fix).
+
 ## 6. Rounds are stateless and symmetric
 
 A sync round with one peer both **pushes** what the peer lacks and **pulls** what
@@ -209,10 +260,18 @@ The responder:
 
 1. checks the timestamp is **fresh** — rejecting stale and future-dated
    requests;
-2. looks up the **public key it recorded** for the caller's node id and verifies
-   against *that* key, never the key the caller presents — so a caller cannot
-   impersonate an enrolled node by presenting its own key;
-3. rejects a **replayed** `(node, nonce)` seen inside the window.
+2. verifies the signature against the **key presented in the request itself**
+   — there is nothing else it could verify against, because a PropFix node
+   has no identifier separate from its key (ARCHITECTURE.md §7, §2 below):
+   the value that names the caller and the value the signature is checked
+   against are the same field. What stops impersonation is not a
+   presented-vs-recorded distinction but the two checks that follow: ordinary
+   signature soundness (only the holder of a key's private half can produce a
+   signature that verifies against it, so presenting somebody else's public
+   key gains nothing without their private key) plus membership — the key
+   must already be an **enrolled** row in `peer`, or the request must carry a
+   valid pairing secret to enrol it on the spot (TOFU, below);
+3. rejects a **replayed** `(key, nonce)` seen inside the window.
 
 ### The shared secret is a bootstrap, not a gate
 
@@ -235,8 +294,8 @@ peers are rejected by default.**
 | A stranger on the network reaching `/api/sync/*` | No shared secret to bootstrap and no enrolled key → rejected. |
 | A captured request replayed later | Freshness window plus the replay-nonce cache. |
 | A tampered body, or a signature retargeted at another path | Body hash, path and method are inside the signed envelope. |
-| Impersonating an enrolled node | Verification uses the **recorded** key, not the presented one. |
-| A former contractor whose peer row you deleted | Their key no longer verifies. Full revocation = **delete the peer row *and* rotate the pairing secret**, since the secret alone would let them bootstrap a fresh key. |
+| Impersonating an enrolled node | The request must carry a signature that verifies against that node's key — which only the holder of its private half can produce — **and** that key must already be an enrolled `peer` row. Presenting an enrolled node's public key with no matching private key fails at signature verification, before enrolment is even checked. |
+| A former contractor whose peer row you deleted | Their key no longer has an enrolled row, so `peerEnrolled` fails and the request is rejected even though the signature itself still verifies fine. Full revocation = **delete the peer row *and* rotate the pairing secret**, since the secret alone would let them bootstrap a fresh key. |
 | Someone who learns the pairing secret | They can enrol a *new* key, but cannot forge requests as an *existing* enrolled node. Rotate the secret to stop new enrolments. |
 | Two unrelated organisations sharing a secret by accident | Every row and op carries `org_id`; foreign ops are dropped on apply regardless of transport auth. |
 
@@ -248,7 +307,7 @@ it on a trusted path:
 
 - a LAN;
 - a VPN or overlay you run yourself (WireGuard, Tailscale, Netbird);
-- an HTTPS tunnel — a [Vulos Relay](https://github.com/vul-os/vulos-relay) is
+- an HTTPS tunnel — [Ephor](https://github.com/vul-os/ephor) is
   one option, and is an **optional convenience only**. Nothing about sync
   depends on it, and a relay is a content-visible L7 hop: it terminates TLS and
   can see what passes through. Treat it as reachability, not confidentiality.

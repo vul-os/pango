@@ -101,7 +101,7 @@ See [WRAP.md](WRAP.md).
 
 ## Optional seams — 📐 Designed, and optional by contract
 
-A hard runtime dependency on Vulos Relay, a control plane, or DMTAP is
+A hard runtime dependency on Ephor, a control plane, or DMTAP is
 **forbidden**. Each of the following is a feature that lights up when configured
 and is absent — not degraded, not broken — when it is not.
 

@@ -33,13 +33,14 @@ unresolved.
 There is no hosted PropFix, no account with us, no free tier, and no price,
 because there is nothing to sell you. It is MIT-licensed software you run.
 
-Vulos as a whole bills for exactly two things — **Relay reachability** and
-**backup storage buckets** — and PropFix requires neither. There is no
-compute/box billing, no per-seat charge, and no app-store subscription.
+Vulos publishes one thing: the OS, free and open-source, dual MIT OR
+Apache-2.0, run by you on your own hardware or a VPS you rent. There is no
+billing anywhere in the stack — no compute/box billing, no per-seat charge,
+and no app-store subscription.
 
 ## Do I need Vulos anything to run it?
 
-No. A hard runtime dependency on Vulos Relay, a control plane, or DMTAP is
+No. A hard runtime dependency on Ephor, a control plane, or DMTAP is
 **forbidden** by the product standard. They are optional seams. A PropFix node
 with none of them configured is a complete deployment, not a degraded one.
 

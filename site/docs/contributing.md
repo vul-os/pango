@@ -53,7 +53,7 @@ first, in a separate, deliberate commit.
 5. **Units are rows, never free text.** Normalised `key`, display `label`.
 6. **Tenant isolation is derived server-side from the authenticated identity**,
    never from a client-supplied scope parameter.
-7. **No hard runtime dependency on Vulos Relay, a control plane, or DMTAP.**
+7. **No hard runtime dependency on Ephor, a control plane, or DMTAP.**
    Optional seams only. Feature-scoped degradation is the intended design.
 8. **No default outbound network calls.** A fresh install talks to nothing.
 9. **Secrets** are never in argv, never logged, never in `String()`/`Debug`
