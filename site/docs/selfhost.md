@@ -122,5 +122,6 @@ Two things must remain true, by contract:
 
 - A licence server, a seat count, or an activation step.
 - A "community edition" with features removed. There is one edition.
-- A managed offering. Vulos bills for exactly two things — Relay reachability and
-  backup storage buckets — and PropFix requires neither.
+- A managed offering, licence tier, or hosted service. PropFix runs entirely on
+  your own box; reachability (via Ephor) and backup storage are yours to self-host,
+  and PropFix requires neither to run.
