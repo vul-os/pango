@@ -3,10 +3,14 @@
 # Known gaps at the time this workflow was written (see the repo furniture
 # report for detail — do not "fix" these here without landing the underlying
 # work first):
-#   - The frontend job's `build` step is expected to fail until src/App.jsx
-#     and its route tree land (src/ is mid-build as of this commit). That is
-#     a real, correct failure — it is NOT wrapped in continue-on-error,
-#     because a green frontend job must mean the app actually builds.
+#   - The frontend `build` step used to be expected to fail while src/ was
+#     mid-build. src/App.jsx and its route tree have since landed and `npm run
+#     build` now succeeds, so that note is gone. It is still NOT wrapped in
+#     continue-on-error: a green frontend job must mean the app actually
+#     builds.
+#   - The frontend job's `lint` step DOES currently fail (7 eslint errors in
+#     src/, pre-existing). It is deliberately not wrapped in continue-on-error
+#     either — fix the lint errors rather than silencing the step.
 #   - There is no e2e job yet. e2e/ contains a real Playwright harness
 #     (global-setup builds the actual binary), but every spec is currently
 #     skipped: the compiled binary has no //go:embed for the built app and
@@ -58,7 +62,7 @@ jobs:
         run: go test -count=1 -v -run TestConformanceVectors ./internal/wrap/
 
   frontend:
-    name: Frontend (lint, build)
+    name: Frontend (docs, test, lint, build)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -67,6 +71,17 @@ jobs:
           node-version: 20
       - name: Install
         run: npm ci
+      # site/docs/ is a generated mirror of docs/ (scripts/sync-docs.mjs) that
+      # the docs viewer fetches at runtime. Nothing else re-runs the copy, so
+      # editing docs/ without re-running it publishes stale text silently.
+      # --check exits 1 on drift, 0 in sync.
+      - name: Docs mirror in sync
+        run: npm run docs:check
+      # The vitest suite exists and passes but was not wired in here, so
+      # nothing in CI ran it. Kept ahead of Lint so it still executes while
+      # Lint is red (a failed step stops the job).
+      - name: Test
+        run: npm test
       - name: Lint
         run: npm run lint
       - name: Build

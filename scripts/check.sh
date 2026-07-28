@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
 # Single verification gate. Every wave cycle / PR must end with this passing.
 #
-# Mirrors wede's scripts/check.sh. Steps that cannot run yet (frontend lint,
-# frontend test, e2e) because src/ has no app code and built lint yet are
-# still invoked — if they are missing they fail loudly here rather than
-# silently passing, which is the point of the gate.
+# Mirrors wede's scripts/check.sh. Every step is invoked unconditionally — if
+# one is missing it fails loudly here rather than silently passing, which is
+# the point of the gate.
+#
+# Status as of this commit: backend (gofmt/vet/build/test), the docs mirror
+# check and the frontend test+build all pass; src/ has app code and `npm run
+# build` succeeds. `npm run lint` FAILS on 7 pre-existing eslint errors in
+# src/, so this script exits non-zero. That is a real failure to fix, not a
+# step to silence.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -28,6 +33,13 @@ step "backend: go build"
 
 step "backend: go test"
 ( cd backend && go test ./... ) || fail=1
+
+# site/docs/ is a generated mirror of docs/ (scripts/sync-docs.mjs) that the
+# docs viewer fetches at runtime. Nothing else re-runs the copy, so editing
+# docs/ without re-running it publishes stale text with no signal — the exact
+# drift the script's header describes. --check exits 1 on drift, 0 in sync.
+step "docs: site mirror in sync"
+npm run docs:check || fail=1
 
 step "frontend: lint"
 npm run lint || fail=1
