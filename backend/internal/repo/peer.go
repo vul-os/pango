@@ -13,7 +13,6 @@ package repo
 // to delete in order to revoke it.
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -89,14 +88,4 @@ func (r *Repo) DeletePeer(orgID, id string) error {
 		return ErrNotFound
 	}
 	return nil
-}
-
-// PeerPubkey returns an enrolled peer's public key, or "". It is the authority
-// for inbound mutual key auth once the sync transport exists: a request signed
-// by a key that is not enrolled here is rejected by default (§7).
-func (r *Repo) PeerPubkey(orgID, id string) string {
-	var v sql.NullString
-	_ = r.s.DB().QueryRow(
-		"SELECT pubkey FROM peer WHERE id = ? AND org_id = ?", id, orgID).Scan(&v)
-	return nullStr(v)
 }

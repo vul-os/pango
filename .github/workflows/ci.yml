@@ -47,6 +47,15 @@ jobs:
         run: go build ./...
       - name: Test
         run: go test ./...
+      # `go test` prints nothing for a skipped test, so the WRAP conformance
+      # harness could skip its entire vector set and this job would still be
+      # green with no trace. There is no vul-os/wrap checkout in CI, so it
+      # WILL skip; this step surfaces the harness's banner listing exactly
+      # which vectors went unverified. It does not fail the job — `make
+      # conformance` (WRAP_VECTORS_REQUIRED=1) is the gate for that, and it
+      # needs a wrap checkout to be meaningful.
+      - name: WRAP conformance status (informational)
+        run: go test -count=1 -v -run TestConformanceVectors ./internal/wrap/
 
   frontend:
     name: Frontend (lint, build)

@@ -11,21 +11,34 @@ package wrap
 // (Assignment-by-issuer) it needs for its own trades/v0 mapping. It does NOT
 // implement WRAP's HLC, merge algebra, lifecycle fold, or fulfilment-proof
 // verification — those live in PropFix's own store/domain layers using its
-// own oplog CRDT, not in this package. Vectors in the hlc/tiebreak/merge/
-// fold/expiry/proof groups are therefore marked NOT-COVERED here, not
-// silently passed and not silently dropped: every vector in the file gets a
-// subtest, and every subtest's outcome is one of PASS, SKIP (not-covered, by
-// design), or SKIP (documented gap — the implementation currently disagrees
-// with the spec; see the reject-oversize case).
+// own oplog CRDT, not in this package. Vectors in the groups listed in
+// notCoveredGroups below are therefore marked NOT-COVERED here, not silently
+// passed and not silently dropped: every vector in the file gets a subtest,
+// and every subtest's outcome is one of PASS, SKIP (not-covered, by design),
+// or SKIP (documented gap — the implementation currently disagrees with the
+// spec; see the reject-oversize case).
 //
-// Vectors are loaded from the sibling `wrap` repository by relative path
-// (../../../../wrap/conformance/wrap_vectors.json from this package), since
-// the two repositories are checked out side by side under the same parent
-// directory. If the file cannot be found (e.g. a checkout that only has
-// propfix), the whole test is skipped rather than failed — this package does
-// not vendor a copy of another repository's conformance data.
+// WHERE THE VECTORS COME FROM, AND WHAT HAPPENS WHEN THEY ARE ABSENT
+//
+// The vectors are NOT vendored here: they are loaded from a sibling checkout
+// of github.com/vul-os/wrap (../../../../wrap/conformance/wrap_vectors.json
+// from this package), or from WRAP_VECTORS_PATH. A propfix-only checkout
+// therefore has nothing to run.
+//
+// That absence used to be a bare t.Skip, which `go test ./...` renders as a
+// plain "ok" — the conformance claim evaporated with no output at all. It now
+// prints a loud banner naming every group that went unverified, and
+// WRAP_VECTORS_REQUIRED=1 turns the skip into a failure so CI can insist.
+//
+// Vendoring a copy with a provenance hash is the better answer and is NOT done
+// here, because it cannot be done honestly from a checkout that does not have
+// the upstream file: a vendored copy nobody can diff against its source is
+// worse than no copy. The hook is in place for whoever does it —
+// WRAP_VECTORS_SHA256 pins the digest of whatever file is loaded, and the
+// digest is printed on every run either way.
 import (
 	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -33,10 +46,72 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
 	"strings"
 	"testing"
 )
+
+// ── what this harness claims to cover ────────────────────────────────────
+//
+// These lists are the coverage assertion. Every id below is dispatched by name
+// in runVector; if upstream renames or drops one, the harness would otherwise
+// keep passing while silently verifying less. Presence is checked on load and
+// the outcome is checked after the run.
+
+// verifiedVectorIDs must be present AND end the run in PASS.
+var verifiedVectorIDs = []string{
+	"id-excludes-key-3",
+	"sign-preimage-construction",
+	"sign-verify-pass",
+	"sign-verify-fail-tampered",
+	"sign-verify-fail-wrong-claimed-author",
+	"reject-forbidden-key",
+	"reject-non-canonical-minimal",
+	"reject-non-canonical-realistic",
+	"reject-unsupported-version",
+	"authorship-assignment-by-issuer-accepted",
+	"authorship-assignment-by-performer-rejected",
+	"authorship-assignment-by-third-party-rejected",
+	"authorship-bid-by-any-principal-accepted",
+	"tiebreak-is-pure-string-comparison",
+	"forward-unknown-kind-ignored",
+	"forward-unknown-field-preserved-through-reencode",
+	"forward-unknown-profile-stored-not-rendered",
+}
+
+// knownGapVectorIDs must be present, and may end in PASS or GAP — GAP while
+// the implementation still disagrees with the spec, PASS once it stops.
+var knownGapVectorIDs = []string{
+	"reject-oversize",
+}
+
+// acknowledgedVectorIDs must be present and are deliberately NOT verified.
+// Listing them here is what stops "not covered" from quietly becoming "not
+// present, so not our problem".
+var acknowledgedVectorIDs = []string{
+	"reject-bad-id",
+}
+
+// minVectorsByGroup floors the groups runVector dispatches by shape rather
+// than by id (encode picks on `object` vs `value`, id falls through to a
+// default), so those cannot be pinned by name.
+var minVectorsByGroup = map[string]int{
+	"encode": 1,
+	"id":     2,
+}
+
+// notCoveredGroups are the WRAP chapters internal/wrap does not implement at
+// all. The reason is printed for each one, both in the summary and in the
+// absent-vectors banner, so "we pass conformance" is never readable as more
+// than it is.
+var notCoveredGroups = map[string]string{
+	"hlc":    "internal/wrap implements no HLC mint/observe logic (that lives in PropFix's internal/store.HLC, a separate package with its own tests and its own vector file at conformance/hlc_vectors.json, not exercised by this WRAP binding)",
+	"merge":  "internal/wrap implements no merge/union/state-root logic; PropFix's own CRDT oplog (internal/sync) is a separate algebra, not this package's WRAP object union",
+	"fold":   "internal/wrap implements no §6.3 lifecycle fold (no state-from-object-set computation exists in this package)",
+	"expiry": "internal/wrap has no lifecycle/fold engine to compute a derived `expired` state from (WorkOrder.Expires is readable as data, but nothing in this package computes state from it)",
+	"proof":  "internal/wrap has no fulfilment-proof (handoff-code commitment) verification function; the commit hash in this vector was independently verified against a second, non-Go BLAKE3 implementation while authoring the vectors, but nothing in this package checks it",
+}
 
 // ── vector file schema ──────────────────────────────────────────────────
 
@@ -252,6 +327,12 @@ func keyPub(vf *vectorsFile, name string) ([]byte, error) {
 
 // ── locating the vectors file ────────────────────────────────────────────
 
+// sibling is the one search path other than WRAP_VECTORS_PATH: a checkout of
+// github.com/vul-os/wrap next to this repository. (An absolute path to one
+// developer's machine used to sit alongside it; on that machine it resolved to
+// exactly this, and everywhere else it was noise.)
+var sibling = filepath.Join("..", "..", "..", "..", "wrap", "conformance", "wrap_vectors.json")
+
 func findVectorsFile(t *testing.T) string {
 	t.Helper()
 	if p := os.Getenv("WRAP_VECTORS_PATH"); p != "" {
@@ -260,17 +341,65 @@ func findVectorsFile(t *testing.T) string {
 		}
 		t.Fatalf("WRAP_VECTORS_PATH=%s does not exist", p)
 	}
-	candidates := []string{
-		filepath.Join("..", "..", "..", "..", "wrap", "conformance", "wrap_vectors.json"),
-		"/Users/pc/code/vulos/wrap/conformance/wrap_vectors.json",
+	if _, err := os.Stat(sibling); err == nil {
+		return sibling
 	}
-	for _, c := range candidates {
-		if _, err := os.Stat(c); err == nil {
-			return c
-		}
-	}
-	t.Skip("wrap_vectors.json not found (looked for the sibling vul-os/wrap checkout and WRAP_VECTORS_PATH); skipping the whole conformance run")
+	reportUnverified(t)
 	return ""
+}
+
+// reportUnverified prints what a missing vector file actually costs, then
+// skips (or fails, under WRAP_VECTORS_REQUIRED=1).
+//
+// It writes to stderr rather than only t.Skip/t.Log because a skipped test
+// prints nothing at all under a plain `go test ./...`, which is how this
+// stopped verifying anything without anyone noticing. Everything named here
+// is unverified until a wrap checkout is present.
+func reportUnverified(t *testing.T) {
+	t.Helper()
+	abs, _ := filepath.Abs(sibling)
+
+	var b strings.Builder
+	fmt.Fprint(&b, "\n"+strings.Repeat("=", 78)+"\n")
+	fmt.Fprintf(&b, "WRAP CONFORMANCE NOT RUN — internal/wrap is UNVERIFIED against the spec.\n")
+	fmt.Fprint(&b, strings.Repeat("=", 78)+"\n")
+	fmt.Fprintf(&b, "wrap_vectors.json was not found. Looked at:\n")
+	fmt.Fprintf(&b, "  $WRAP_VECTORS_PATH        (unset)\n")
+	fmt.Fprintf(&b, "  %s\n", abs)
+	fmt.Fprintf(&b, "Fix: check out github.com/vul-os/wrap beside this repository, or set\n")
+	fmt.Fprintf(&b, "WRAP_VECTORS_PATH. Set WRAP_VECTORS_REQUIRED=1 to make this a failure.\n\n")
+	fmt.Fprintf(&b, "Not verified by this run (%d vectors by name, plus every vector in the\n",
+		len(verifiedVectorIDs)+len(knownGapVectorIDs)+len(acknowledgedVectorIDs))
+	fmt.Fprintf(&b, "encode and id groups):\n")
+	for _, id := range verifiedVectorIDs {
+		fmt.Fprintf(&b, "  [normally PASS] %s\n", id)
+	}
+	for _, id := range knownGapVectorIDs {
+		fmt.Fprintf(&b, "  [known gap]     %s\n", id)
+	}
+	for _, id := range acknowledgedVectorIDs {
+		fmt.Fprintf(&b, "  [not covered]   %s\n", id)
+	}
+	fmt.Fprintf(&b, "\nGroups this package does not implement at all, vectors present or not:\n")
+	for _, g := range sortedKeys(notCoveredGroups) {
+		fmt.Fprintf(&b, "  %s\n", g)
+	}
+	fmt.Fprint(&b, strings.Repeat("=", 78)+"\n")
+	fmt.Fprint(os.Stderr, b.String())
+
+	if os.Getenv("WRAP_VECTORS_REQUIRED") == "1" {
+		t.Fatal("WRAP_VECTORS_REQUIRED=1 and wrap_vectors.json is absent: refusing to report a conformance run that did not happen")
+	}
+	t.Skip("wrap_vectors.json not found — see the banner above for exactly what went unverified")
+}
+
+func sortedKeys[V any](m map[string]V) []string {
+	out := make([]string, 0, len(m))
+	for k := range m {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out
 }
 
 func loadVectors(t *testing.T) *vectorsFile {
@@ -280,6 +409,17 @@ func loadVectors(t *testing.T) *vectorsFile {
 	if err != nil {
 		t.Fatalf("reading %s: %v", path, err)
 	}
+
+	// Provenance. The digest is logged unconditionally so a conformance claim
+	// is attributable to an exact file, and pinned when WRAP_VECTORS_SHA256 is
+	// set — which is what a future vendored copy would be checked against.
+	sum := sha256.Sum256(b)
+	digest := hex.EncodeToString(sum[:])
+	t.Logf("wrap_vectors.json: %s\n  sha256=%s", path, digest)
+	if want := os.Getenv("WRAP_VECTORS_SHA256"); want != "" && want != digest {
+		t.Fatalf("vector file provenance mismatch:\n  file   = %s\n  sha256 = %s\n  pinned = %s", path, digest, want)
+	}
+
 	var vf vectorsFile
 	if err := json.Unmarshal(b, &vf); err != nil {
 		t.Fatalf("parsing %s: %v", path, err)
@@ -287,7 +427,42 @@ func loadVectors(t *testing.T) *vectorsFile {
 	if len(vf.Vectors) == 0 {
 		t.Fatalf("%s parsed but contained zero vectors", path)
 	}
+	assertCoveragePresent(t, path, &vf)
 	return &vf
+}
+
+// assertCoveragePresent fails when a vector this harness dispatches by name is
+// missing from the file. Without it, an upstream rename silently converts a
+// checked behaviour into an unchecked one and the suite still reports "ok".
+func assertCoveragePresent(t *testing.T, path string, vf *vectorsFile) {
+	t.Helper()
+	present := map[string]bool{}
+	perGroup := map[string]int{}
+	for _, raw := range vf.Vectors {
+		id, _ := raw["id"].(string)
+		group, _ := raw["group"].(string)
+		present[id] = true
+		perGroup[group]++
+	}
+	var missing []string
+	for _, ids := range [][]string{verifiedVectorIDs, knownGapVectorIDs, acknowledgedVectorIDs} {
+		for _, id := range ids {
+			if !present[id] {
+				missing = append(missing, id)
+			}
+		}
+	}
+	if len(missing) > 0 {
+		t.Fatalf("%s no longer contains %d vector(s) this harness claims to cover: %v\n"+
+			"Coverage has silently shrunk. Update the lists at the top of this file to match, "+
+			"deliberately, rather than leaving them pointing at ids that are gone.", path, len(missing), missing)
+	}
+	for _, g := range sortedKeys(minVectorsByGroup) {
+		if perGroup[g] < minVectorsByGroup[g] {
+			t.Errorf("group %q has %d vectors, expected at least %d (this group is dispatched by shape, not by id, so a count is the only floor available)",
+				g, perGroup[g], minVectorsByGroup[g])
+		}
+	}
 }
 
 // ── error-code classification (12-errors.md §13.1) ──────────────────────
@@ -343,9 +518,45 @@ func TestConformanceVectors(t *testing.T) {
 		})
 	}
 
-	t.Cleanup(func() {
-		printSummary(t, results)
-	})
+	assertCoverageOutcome(t, results)
+	printSummary(t, results)
+}
+
+// assertCoverageOutcome checks that the vectors this harness claims to verify
+// actually ended the run verified. Presence was checked on load; this is the
+// other half — a vector that was present but landed in NOT_COVERED, or a
+// documented gap that was quietly reclassified, fails here.
+func assertCoverageOutcome(t *testing.T, results []vecResult) {
+	t.Helper()
+	status := map[string]string{}
+	for _, r := range results {
+		status[r.id] = r.status
+	}
+	for _, id := range verifiedVectorIDs {
+		if status[id] != "PASS" {
+			t.Errorf("vector %q is listed as verified but finished as %q", id, status[id])
+		}
+	}
+	for _, id := range knownGapVectorIDs {
+		if s := status[id]; s != "PASS" && s != "GAP" {
+			t.Errorf("vector %q is a known gap; expected PASS (fixed) or GAP (still open), got %q", id, s)
+		}
+	}
+	for _, id := range acknowledgedVectorIDs {
+		if status[id] != "NOT_COVERED" {
+			t.Errorf("vector %q is listed as deliberately not covered but finished as %q — "+
+				"if it is covered now, move it to verifiedVectorIDs", id, status[id])
+		}
+	}
+	passed := 0
+	for _, r := range results {
+		if r.status == "PASS" {
+			passed++
+		}
+	}
+	if passed < len(verifiedVectorIDs) {
+		t.Errorf("only %d vectors passed; at least %d are named in verifiedVectorIDs", passed, len(verifiedVectorIDs))
+	}
 }
 
 func printSummary(t *testing.T, results []vecResult) {
@@ -378,6 +589,9 @@ func printSummary(t *testing.T, results []vecResult) {
 func runVector(t *testing.T, vf *vectorsFile, v map[string]any) (string, string) {
 	t.Helper()
 	group, _ := v["group"].(string)
+	if reason, ok := notCoveredGroups[group]; ok {
+		return "NOT_COVERED", reason
+	}
 	switch group {
 	case "encode":
 		return runEncode(t, vf, v)
@@ -389,20 +603,10 @@ func runVector(t *testing.T, vf *vectorsFile, v map[string]any) (string, string)
 		return runReject(t, vf, v)
 	case "authorship":
 		return runAuthorship(t, vf, v)
-	case "hlc":
-		return "NOT_COVERED", "internal/wrap implements no HLC mint/observe logic (that lives in PropFix's internal/store.HLC, a separate package with its own tests, not exercised by this WRAP binding)"
 	case "tiebreak":
 		return runTiebreak(t, vf, v)
-	case "merge":
-		return "NOT_COVERED", "internal/wrap implements no merge/union/state-root logic; PropFix's own CRDT oplog (internal/sync) is a separate algebra, not this package's WRAP object union"
-	case "fold":
-		return "NOT_COVERED", "internal/wrap implements no §6.3 lifecycle fold (no state-from-object-set computation exists in this package)"
-	case "expiry":
-		return "NOT_COVERED", "internal/wrap has no lifecycle/fold engine to compute a derived `expired` state from (WorkOrder.Expires is readable as data, but nothing in this package computes state from it)"
 	case "forward":
 		return runForward(t, vf, v)
-	case "proof":
-		return "NOT_COVERED", "internal/wrap has no fulfilment-proof (handoff-code commitment) verification function; the commit hash in this vector was independently verified against a second, non-Go BLAKE3 implementation while authoring the vectors, but nothing in this package checks it"
 	default:
 		t.Fatalf("unknown vector group %q", group)
 		return "", ""

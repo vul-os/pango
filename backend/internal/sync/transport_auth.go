@@ -23,13 +23,18 @@ package sync
 // ownership) removes it from the enrolled set, so the key no longer
 // authenticates. Full revocation is deletion plus rotating the pairing
 // secret, since the secret alone would otherwise let the same key re-enrol.
+//
+// DUPLICATION: FlowStock has a file of the same name and purpose. This one is
+// NOT a copy of it — it is the redesign (one identity value instead of a
+// node-id/pubkey pair, secret as bootstrap only, TOFU writing a deletable peer
+// row). See docs/SYNC.md §11 ("Duplicated sync substrate"). Do not "align" it
+// back to the sibling's shape; the convergence runs the other way.
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -54,10 +59,6 @@ const (
 	// it before the handler runs).
 	maxSyncBody = 64 << 20
 )
-
-// errOrgUnknown signals a batch op whose organisation this node does not (yet)
-// hold — see ops.go.
-var errOrgUnknown = errors.New("organisation not locally known")
 
 // nonceCache remembers recently seen nonces per key, TTL'd at twice the
 // freshness window — past that point a replay would be rejected as stale

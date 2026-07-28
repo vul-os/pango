@@ -14,7 +14,6 @@ package repo
 import (
 	"crypto/rand"
 	"crypto/sha256"
-	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
 	"encoding/hex"
@@ -225,10 +224,4 @@ func (r *Repo) PurgeExpiredSessions() error {
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
-}
-
-// SameToken compares two tokens in constant time. Used where a token is
-// compared outside a database lookup.
-func SameToken(a, b string) bool {
-	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }

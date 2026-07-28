@@ -12,6 +12,10 @@ package store
 // The seed never leaves this package. Signing is offered as a service
 // (CryptoSigner) rather than by handing out key material, so moving the key to
 // an HSM or an agent later is a change here and at no call site.
+//
+// DUPLICATION: a near-copy of FlowStock's backend/internal/store/identity.go.
+// Deliberate for now, tracked in docs/SYNC.md §11 ("Duplicated sync
+// substrate"), which also records why the two may not import each other.
 
 import (
 	"crypto"

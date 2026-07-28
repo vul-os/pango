@@ -34,12 +34,34 @@ A stamp is a lexically sortable string:
 {unix_ms:013d}-{counter:04x}-{author_hex}
 ```
 
-- `unix_ms` — 13 zero-padded digits, so string order is time order until the
-  year 33658.
-- `counter` — a monotonic counter within the same millisecond.
+- `unix_ms` — 13 zero-padded digits.
+- `counter` — 4 hex digits, a monotonic counter within the same millisecond.
 - `author_hex` — the **author's Ed25519 public key**.
 
 Sorting the string sorts the ops. No parsing is required to order a batch.
+
+**Both numeric fields are fixed-width, and that is load-bearing.** String order
+equals `(wall, counter, author)` order only while neither field can widen. A
+counter of `0x10000` renders as five characters, and `1700000000000-10000-k`
+sorts *before* `1700000000000-ffff-k` — causal order inverts, silently, with no
+error anywhere. The counter is reachable from the network, not only from a
+65 536-op burst: `Observe` folds a remote counter forward, so a peer sending
+`ffff` would otherwise drive this node past the boundary.
+
+So the implementation bounds both fields and fails closed:
+
+- `ParseHLC` rejects a stamp whose wall exceeds 13 digits (`9999999999999`,
+  year 2286) or whose counter exceeds `0xffff`. A hostile or wildly-skewed
+  remote cannot drag this node's clock out of width.
+- Minting spills instead of widening: the stamp after `…000-ffff-k` is
+  `…001-0000-k`, the next millisecond, not a five-digit counter.
+- At the very top of the wall range there is nowhere left to spill and the
+  counter saturates. Two ticks can then tie. Order stops being strict; it never
+  inverts, which is the property convergence actually needs.
+
+These rules are pinned as data in [`conformance/hlc_vectors.json`](../conformance/hlc_vectors.json)
+so a second implementation can be held to the same ones — see §11,
+"Duplicated sync substrate".
 
 ### Why ties break on the author key
 
@@ -380,3 +402,38 @@ Recorded honestly rather than decided by omission.
 - **Verifying convergence.** A state-root style content address over the whole
   replicated state (including tombstones and anything no screen displays) would
   let two nodes prove they agree rather than eyeball it. Desirable; unspecified.
+
+### Duplicated sync substrate
+
+Four files in this repository are near-copies of files in FlowStock
+(`github.com/vul-os/flowstock`). This is recorded here rather than left to be
+rediscovered:
+
+| PropFix | FlowStock counterpart | Relationship |
+|---|---|---|
+| `backend/internal/store/hlc.go` | `backend/internal/store/hlc.go` | same algorithm; PropFix names the tie-break field `author`, FlowStock names it `node` |
+| `backend/internal/store/identity.go` | `backend/internal/store/identity.go` | same algorithm; PropFix returns a typed `ErrCorruptIdentity` where FlowStock returns `sql.ErrNoRows` |
+| `backend/internal/sync/folder.go` | `backend/internal/sync/folder.go` | same algorithm, different settings-key prefixes and locking placement |
+| `backend/internal/sync/transport_auth.go` | `backend/internal/sync/transport_auth.go` | **diverged.** PropFix's is a redesign, not a copy — see below |
+
+**They must not import each other.** Neither product may take a build or
+runtime dependency on the other; a product that stops building because a
+sibling repository moved is not self-hostable. The agreed convergence path is a
+published substrate crate plus a spec and vectors. **That crate does not
+exist**, and until it does the duplication stays.
+
+What can be done in the meantime, and has been, is to make the copies
+*verifiably* agree where a disagreement would be silent. `conformance/hlc_vectors.json`
+pins the HLC stamp format, the total order and the tie-break rule as data; both
+repositories can run it (PropFix does, in
+`backend/internal/store/hlc_vectors_test.go`). Two engines that both converge
+and still pick different winners is the failure this guards.
+
+`transport_auth.go` is the one file where PropFix's version should be treated
+as the reference rather than the copy. It collapses the node-id/pubkey pair
+into one value, so there is no lookup between the identity a caller claims and
+the key its signature is checked against; the shared secret is bootstrap-only
+rather than also a standing fallback for enrolled peers; and TOFU enrolment
+writes a real inbound-only peer row, which gives an operator something to
+delete in order to revoke. Adopting that shape elsewhere is a change to make in
+the other repository, not here.

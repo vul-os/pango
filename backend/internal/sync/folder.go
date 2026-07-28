@@ -12,6 +12,11 @@ package sync
 // a conflict to resolve. The database remains authoritative; the files are a
 // durable, replayable log that a brand-new node pointed at the folder could
 // rebuild from alone.
+//
+// DUPLICATION: a near-copy of FlowStock's backend/internal/sync/folder.go —
+// same algorithm, different settings-key prefixes. Deliberate for now, tracked
+// in docs/SYNC.md §11 ("Duplicated sync substrate"), which also records why
+// the two may not import each other.
 
 import (
 	"bufio"

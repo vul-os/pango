@@ -1,6 +1,7 @@
 VERSION := $(shell cat VERSION 2>/dev/null || echo dev)
 
 .PHONY: dev dev-app build build-frontend test test-go test-e2e lint \
+        conformance conformance-status \
         screenshots qa-shots notices check run
 
 # UI-only dev loop: Vite dev server + hot reload, proxying /api to a
@@ -31,6 +32,26 @@ test: test-go test-e2e
 
 test-go:
 	cd backend && go test ./...
+	@$(MAKE) --no-print-directory conformance-status
+
+# WRAP conformance visibility.
+#
+# internal/wrap's conformance harness reads its vectors from a sibling
+# checkout of github.com/vul-os/wrap. Without one it skips — and `go test`
+# prints nothing at all for a skipped test, which is how PropFix came to
+# claim WRAP conformance while verifying none of it. This target re-runs
+# just that test verbosely so the harness's banner (which names every
+# vector that went unverified) is visible in the place people look.
+#
+# It never fails the build. `make conformance` is the gate that does.
+conformance-status:
+	@cd backend && go test -count=1 -v -run TestConformanceVectors ./internal/wrap/ 2>&1 \
+	  | grep -Ev '^(=== (RUN|CONT|PAUSE)|[[:space:]]*--- |PASS$$|FAIL$$|ok[[:space:]])' || true
+
+# Refuses to pass unless the WRAP vectors were actually found and run. Use
+# this before making a conformance claim anywhere.
+conformance:
+	cd backend && WRAP_VECTORS_REQUIRED=1 go test -count=1 -v -run TestConformanceVectors ./internal/wrap/
 
 # Browser end-to-end tests against the real binary (builds it if stale, see
 # e2e/global-setup.js). Needs `npx playwright install chromium` once.

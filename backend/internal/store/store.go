@@ -167,9 +167,6 @@ func (s *Store) Merger() Merger {
 // when someone opens the file with the sqlite3 CLI at 2am.
 func Now() string { return time.Now().UTC().Format(time.RFC3339Nano) }
 
-// Tick mints the next HLC timestamp for a local write.
-func (s *Store) Tick() string { return s.clock.Tick() }
-
 // Observe folds a remote timestamp into the local clock.
 func (s *Store) Observe(hlc string) { s.clock.Observe(hlc) }
 

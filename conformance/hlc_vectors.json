@@ -1,0 +1,208 @@
+{
+  "vectors_version": 1,
+  "subject": "hybrid logical clock stamp: format, parse, total order, tie-break",
+  "stamp_format": "{unix_ms:013d}-{counter:04x}-{tiebreak_hex}",
+  "tiebreak_field": "author Ed25519 public key, hex, lowercase",
+  "max_wall_ms": 9999999999999,
+  "max_counter": 65535,
+  "keys": {
+    "A": "aaaa000000000000000000000000000000000000000000000000000000000001",
+    "B": "bbbb000000000000000000000000000000000000000000000000000000000002"
+  },
+  "parse": [
+    {
+      "id": "parse-minimum",
+      "ts": "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "ok": true,
+      "ms": 1700000000000,
+      "counter": 0,
+      "tiebreak": "aaaa000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "id": "parse-counter-at-width-limit",
+      "ts": "1700000000000-ffff-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "ok": true,
+      "ms": 1700000000000,
+      "counter": 65535,
+      "tiebreak": "aaaa000000000000000000000000000000000000000000000000000000000001"
+    },
+    {
+      "id": "parse-wall-at-width-limit",
+      "ts": "9999999999999-ffff-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "ok": true,
+      "ms": 9999999999999,
+      "counter": 65535,
+      "tiebreak": "bbbb000000000000000000000000000000000000000000000000000000000002"
+    },
+    {
+      "id": "parse-rejects-oversize-counter",
+      "ts": "1700000000000-10000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "ok": false,
+      "why": "0x10000 renders as five hex digits, so the stamp would sort before every 0x?fff stamp in the same millisecond. Reachable from the network via Observe, so parse must fail closed."
+    },
+    {
+      "id": "parse-rejects-oversize-wall",
+      "ts": "10000000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "ok": false,
+      "why": "14-digit wall field; a hostile or wildly-skewed remote could otherwise widen this node's wall field permanently."
+    },
+    {
+      "id": "parse-rejects-negative-wall",
+      "ts": "-000000000001-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "ok": false,
+      "why": "a negative wall field cannot render in %013d, so no valid stamp can carry one"
+    },
+    {
+      "id": "parse-rejects-non-hex-counter",
+      "ts": "1700000000000-zz-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "ok": false
+    },
+    {
+      "id": "parse-rejects-too-few-fields",
+      "ts": "1700000000000-0000",
+      "ok": false
+    },
+    {
+      "id": "parse-rejects-empty",
+      "ts": "",
+      "ok": false
+    }
+  ],
+  "order": [
+    {
+      "id": "order-wall-dominates-counter",
+      "lesser": "1700000000000-ffff-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "greater": "1700000000001-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "a later millisecond wins regardless of counter or tie-break"
+    },
+    {
+      "id": "order-counter-dominates-tiebreak",
+      "lesser": "1700000000000-0009-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "greater": "1700000000000-000a-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "within one millisecond the counter decides before the tie-break field is ever read"
+    },
+    {
+      "id": "order-tiebreak-on-author-key",
+      "lesser": "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "greater": "1700000000000-0000-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "why": "exact (wall, counter) tie: the author public key breaks it, so the winner is a property of the stamp and survives relaying"
+    },
+    {
+      "id": "order-counter-limit-does-not-invert",
+      "lesser": "1700000000000-ffff-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "greater": "1700000000001-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "the stamp that follows 0xffff is the spill into the next millisecond, NOT a five-digit counter. See tick-counter-spills-into-wall."
+    }
+  ],
+  "sorted": {
+    "id": "sorted-string-order-equals-tuple-order",
+    "why": "sorting the raw strings must equal sorting by (wall, counter, tiebreak). A runner should shuffle this list, sort it as plain strings, and get it back.",
+    "ascending": [
+      "1699999999999-ffff-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "1700000000000-0000-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "1700000000000-0009-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "1700000000000-000a-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "1700000000000-ffff-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "1700000000001-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "9999999999999-ffff-aaaa000000000000000000000000000000000000000000000000000000000001"
+    ]
+  },
+  "tick": [
+    {
+      "id": "tick-frozen-clock-advances-counter",
+      "author": "A",
+      "seed": "",
+      "now_ms": 1700000000000,
+      "expect": [
+        "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+        "1700000000000-0001-aaaa000000000000000000000000000000000000000000000000000000000001",
+        "1700000000000-0002-aaaa000000000000000000000000000000000000000000000000000000000001"
+      ],
+      "why": "every op in one millisecond still gets a strictly greater stamp"
+    },
+    {
+      "id": "tick-seeds-past-last-seen",
+      "author": "A",
+      "seed": "1900000000000-0009-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "now_ms": 1700000000000,
+      "expect": [
+        "1900000000000-000b-aaaa000000000000000000000000000000000000000000000000000000000001"
+      ],
+      "why": "restart with a wall clock behind the oplog: seeding lands on counter+1 (0x0a) and the tick then takes it to 0x0b, so nothing this node writes can sort below its own journal"
+    },
+    {
+      "id": "tick-backwards-wall-clock",
+      "author": "A",
+      "seed": "",
+      "now_ms": 1700000000000,
+      "then_now_ms": 1699996400000,
+      "expect": [
+        "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+        "1700000000000-0001-aaaa000000000000000000000000000000000000000000000000000000000001"
+      ],
+      "why": "NTP steps the clock back an hour mid-shift; the stamp must not go back with it"
+    },
+    {
+      "id": "tick-counter-spills-into-wall",
+      "author": "A",
+      "seed": "1700000000000-fffe-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "now_ms": 1700000000000,
+      "expect": [
+        "1700000000001-0000-aaaa000000000000000000000000000000000000000000000000000000000001"
+      ],
+      "why": "seeding lands the counter on 0xffff; the next stamp must spill into the following millisecond rather than widen the counter field to five digits"
+    },
+    {
+      "id": "tick-saturates-at-max-wall",
+      "author": "A",
+      "seed": "9999999999999-ffff-bbbb000000000000000000000000000000000000000000000000000000000002",
+      "now_ms": 1700000000000,
+      "expect": [
+        "9999999999999-ffff-aaaa000000000000000000000000000000000000000000000000000000000001",
+        "9999999999999-ffff-aaaa000000000000000000000000000000000000000000000000000000000001"
+      ],
+      "why": "at the top of the wall range there is nowhere left to spill, so stamps tie. Order stops being strict; it must never invert."
+    }
+  ],
+  "observe": [
+    {
+      "id": "observe-folds-remote-forward",
+      "author": "A",
+      "now_ms": 1700000000000,
+      "remote": [
+        "1700000000050-0003-bbbb000000000000000000000000000000000000000000000000000000000002"
+      ],
+      "expect_tick": "1700000000050-0005-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "causality crossing machines: once a peer's write is seen, everything written afterwards sorts after it. Observe lands on remote+1, the tick takes it to remote+2."
+    },
+    {
+      "id": "observe-ignores-malformed",
+      "author": "A",
+      "now_ms": 1700000000000,
+      "remote": ["", "nonsense", "abc-def-ghi", "99999999999999999999-0001-x"],
+      "expect_tick": "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "garbage must not be able to push the clock to the year 9999 and poison every future stamp"
+    },
+    {
+      "id": "observe-rejects-oversize-counter",
+      "author": "A",
+      "now_ms": 1700000000000,
+      "remote": [
+        "1700000000000-10000-bbbb000000000000000000000000000000000000000000000000000000000002"
+      ],
+      "expect_tick": "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "a peer must not be able to widen this node's counter field through Observe"
+    },
+    {
+      "id": "observe-rejects-oversize-wall",
+      "author": "A",
+      "now_ms": 1700000000000,
+      "remote": [
+        "10000000000000-0000-bbbb000000000000000000000000000000000000000000000000000000000002"
+      ],
+      "expect_tick": "1700000000000-0000-aaaa000000000000000000000000000000000000000000000000000000000001",
+      "why": "a peer must not be able to widen this node's wall field through Observe"
+    }
+  ]
+}

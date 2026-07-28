@@ -319,20 +319,6 @@ func statusText(resp *http.Response) string {
 	return strings.TrimSpace(string(b))
 }
 
-// TestPeer checks reachability and auth against a peer URL without exchanging
-// any ops. Used by the UI's "test connection" action.
-func (e *Engine) TestPeer(ctx context.Context, baseURL string) bool {
-	base := strings.TrimRight(baseURL, "/")
-	req, _ := http.NewRequestWithContext(ctx, "GET", base+"/api/sync/vector", nil)
-	e.signRequest(req, nil)
-	resp, err := e.client.Do(req)
-	if err != nil {
-		return false
-	}
-	defer resp.Body.Close()
-	return resp.StatusCode == 200
-}
-
 // SyncAll runs a round against every URL in peers, plus the folder transport
 // if FolderFn is configured, and returns one Result per peer.
 func (e *Engine) SyncAll(ctx context.Context, peers []string) []Result {

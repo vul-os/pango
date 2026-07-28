@@ -7,6 +7,7 @@ package sync
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"strings"
 
 	"github.com/vul-os/propfix/backend/internal/store"
@@ -116,6 +117,11 @@ func (e *Engine) ApplyOps(ops []store.Op) (int, error) {
 	}
 	return applied, nil
 }
+
+// errOrgUnknown signals a batch op whose organisation this node does not (yet)
+// hold. It is retryable: a later pass over the same batch may have applied the
+// organisation row by then (see isRetryable).
+var errOrgUnknown = errors.New("organisation not locally known")
 
 func (e *Engine) applyOne(op store.Op) error {
 	known, err := e.orgKnown(op.OrgID, op.Tbl)

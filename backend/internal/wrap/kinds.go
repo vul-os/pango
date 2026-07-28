@@ -25,11 +25,6 @@ func asMap(v any) (map[any]any, bool) {
 	return nil, false
 }
 
-func asArray(v any) ([]any, bool) {
-	a, ok := v.([]any)
-	return a, ok
-}
-
 // ── Place (§3.9) ────────────────────────────────────────────────────────────
 
 type Place struct {
@@ -342,7 +337,7 @@ func WorkOrderFrom(o *Object) (WorkOrder, error) {
 // getX helpers understand, so the same parsers work whether the Object came
 // from Decode (values may be map[any]any/[]any from the wire) or was built
 // directly in Go (values may be M/[]Place-derived M, etc — both handled by
-// asMap/asArray at the point of use).
+// asMap and a plain []any assertion at the point of use).
 func fieldsAsMap(f M) map[any]any {
 	out := make(map[any]any, len(f))
 	for k, v := range f {
