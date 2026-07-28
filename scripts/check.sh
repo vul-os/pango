@@ -50,6 +50,16 @@ npm test || fail=1
 step "frontend: build"
 npm run build || fail=1
 
+# The release verifier and the installer both refuse to install unverified
+# bytes. Those refusals are the whole product; run the synthetic-origin matrix
+# here so a guard that has quietly stopped failing shows up as a red gate
+# rather than as a green run that checked nothing.
+step "release: verify.sh failure matrix"
+bash scripts/verify.sh --selftest || fail=1
+
+step "release: install.sh failure matrix"
+sh install.sh --selftest || fail=1
+
 if [ "$fail" -ne 0 ]; then
   printf '\n\033[31mCHECK FAILED\033[0m\n'
   exit 1

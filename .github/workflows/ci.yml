@@ -86,3 +86,38 @@ jobs:
         run: npm run lint
       - name: Build
         run: npm run build
+
+  # The release verifier and the installer are only worth having if their
+  # REFUSALS are exercised. A checksum guard that has quietly stopped failing
+  # looks identical, from a green CI run, to one that works — that is exactly
+  # how this repo ended up publishing a checksums file that install.sh never
+  # read. This runs the full synthetic-origin matrix on every push, not just at
+  # release time.
+  verify-script:
+    name: Release Verifier & Installer — Lint & Failure Matrix
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check
+        run: |
+          bash -n scripts/verify.sh
+          sh -n install.sh
+
+      - name: ShellCheck
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck scripts/verify.sh
+          shellcheck install.sh
+
+      # Each case is a synthetic origin broken in exactly one way; both
+      # matrices assert the exit code AND that a diagnostic was printed,
+      # because "aborted with no message" was the real-world bug being guarded
+      # against.
+      - name: verify.sh failure matrix (synthetic origin)
+        run: bash scripts/verify.sh --selftest
+
+      - name: install.sh failure matrix (synthetic origin)
+        run: sh install.sh --selftest
