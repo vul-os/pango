@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/assets/logo-mark.svg" alt="Pango" width="110" />
+<img src="brand/logo.svg" alt="Pango" width="110" />
 
 # Pango
 
@@ -206,6 +206,16 @@ Issues and pull requests welcome. Read
 [ARCHITECTURE.md](docs/ARCHITECTURE.md) first — several of its rules
 (append-only money, building-as-authority, author-key tie-breaks) look like
 style preferences and are not.
+
+## Brand
+
+The mark in [`brand/`](brand/) is the source of truth. Every icon this repo
+ships — favicon, PWA and app icons, the mark in the README and on the site — is
+rendered from `brand/logo.svg` rather than redrawn, so there is one approved
+drawing and no second copy to drift.
+
+Copy it outward, never edit a derived copy, and never edit `brand/` to match
+something downstream.
 
 ## License
 
