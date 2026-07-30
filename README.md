@@ -58,20 +58,28 @@ than a disagreement.
 
 <table>
 <tr>
-<td width="50%"><img src="docs/screenshots/jobs-board.png" alt="Jobs board" width="400"/><br/><sub><em>Jobs board — triage across every building, filter by unit, priority or assignee.</em></sub></td>
-<td width="50%"><img src="docs/screenshots/job-detail.png" alt="Job detail" width="400"/><br/><sub><em>Job detail — append-only costs and hours, and an event thread with a tenant-visible toggle.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/jobs-board.png" alt="Jobs board" width="400"/><br/><sub><em><b>Jobs board</b> — triage across every building, filtered by unit, priority or assignee.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/job-detail.png" alt="Job detail" width="400"/><br/><sub><em><b>Job detail</b> — append-only costs and hours, and an event thread with a tenant-visible toggle per entry.</em></sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screenshots/reports.png" alt="Reports" width="400"/><br/><sub><em>Reports — spend and labour per building and per unit, computed from the ledger every time.</em></sub></td>
-<td width="50%"><img src="docs/screenshots/inspection-comparison.png" alt="Inspection runner" width="400"/><br/><sub><em>Move-out walkthrough — a condition scale per item, not a checkbox, with the ingoing record alongside.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/inspection-comparison.png" alt="Move-out walkthrough" width="400"/><br/><sub><em><b>Move-out walkthrough</b> — a condition scale per item, not a checkbox, with the ingoing record alongside.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/reports.png" alt="Reports" width="400"/><br/><sub><em><b>Reports</b> — created vs. closed over the month, then spend and hours per building and per unit.</em></sub></td>
 </tr>
 <tr>
-<td width="50%"><img src="docs/screenshots/inspections.png" alt="Inspections" width="400"/><br/><sub><em>Inspections — ingoing and outgoing pairs per unit, scheduled and tracked.</em></sub></td>
-<td width="50%"><img src="docs/screenshots/buildings.png" alt="Buildings" width="400"/><br/><sub><em>Buildings and units — units created on first use, normalised on entry.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/job-costs.png" alt="Append-only cost and time ledgers" width="400"/><br/><sub><em><b>The ledger</b> — materials, contractors and hours as separate entries. Nothing is edited; a correction is a new line.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/raise-job.png" alt="Raise a job" width="400"/><br/><sub><em><b>Raise a job</b> — against a building and a door. A unit that does not exist yet is created, normalised.</em></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/inspections.png" alt="Inspections" width="400"/><br/><sub><em><b>Inspections</b> — ingoing and outgoing pairs per unit, scheduled and tracked.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/building-detail.png" alt="Building detail" width="400"/><br/><sub><em><b>Building detail</b> — units on record with their normalised keys, and every job raised against them.</em></sub></td>
+</tr>
+<tr>
+<td width="50%"><img src="docs/screenshots/buildings.png" alt="Buildings" width="400"/><br/><sub><em><b>Buildings</b> — every property the organisation manages.</em></sub></td>
+<td width="50%"><img src="docs/screenshots/settings.png" alt="Settings" width="400"/><br/><sub><em><b>Settings</b> — organisation, people, node identity and sync.</em></sub></td>
 </tr>
 </table>
 
-<sub>Light and dark shots of every surface are in <a href="docs/SCREENSHOTS.md">docs/SCREENSHOTS.md</a>. All are captured from the real binary in demo mode by <code>npm run screenshots</code> — nothing is mocked up.</sub>
+<sub>Eleven surfaces, each in light <b>and</b> dark — the full set is in <a href="docs/SCREENSHOTS.md">docs/SCREENSHOTS.md</a>. All captured from the compiled binary in demo mode by <code>npm run screenshots</code>; nothing is mocked up, and the script refuses to write a placeholder if the binary does not serve the app.</sub>
 
 ## Quick start
 

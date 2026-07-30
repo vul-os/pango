@@ -27,6 +27,62 @@ type demoCreds struct {
 	Password string
 }
 
+// backdateJob rewrites one demo job's timestamps so the seeded portfolio spans
+// about a month rather than a single afternoon. The reports timeline groups on
+// `created_at` and `closed_at` (internal/report), so without this every job
+// lands in one column and the chart reads as broken rather than as a quiet month.
+//
+// It writes to the database directly instead of going through the repo, which is
+// precisely what production code must never do: it bypasses the oplog, so the
+// change is invisible to sync and would diverge a replica. That is safe **here
+// and only here** — `--demo` forces an in-memory database (see main.go), nothing
+// is persisted, and a demo instance never enrols a peer. The alternative would be
+// a timestamp override on the real write path, which is a much worse thing to own
+// for the sake of a screenshot.
+func backdateJob(r *repo.Repo, orgID, jobID string, daysAgo, closedAfter int) error {
+	if daysAgo <= 0 {
+		return nil
+	}
+	now := time.Now().UTC()
+	opened := now.AddDate(0, 0, -daysAgo)
+	openedStr := opened.Format(time.RFC3339)
+
+	if _, err := r.DB().Exec(
+		`UPDATE job SET created_at = ?, opened_at = ? WHERE id = ? AND org_id = ?`,
+		openedStr, openedStr, jobID, orgID,
+	); err != nil {
+		return err
+	}
+
+	// The ledger and the thread belong to the same span as the job; leaving them
+	// stamped "now" would show a month-old closed job accruing costs today.
+	during := opened.AddDate(0, 0, 1)
+	if during.After(now) {
+		during = now
+	}
+	duringStr := during.Format(time.RFC3339)
+	for _, tbl := range []string{"cost_entry", "time_entry", "job_event"} {
+		if _, err := r.DB().Exec(
+			`UPDATE `+tbl+` SET created_at = ? WHERE job_id = ? AND org_id = ?`,
+			duringStr, jobID, orgID,
+		); err != nil {
+			return err
+		}
+	}
+
+	// Only a job that actually reached a terminal status carries a closed_at,
+	// hence the `<> ''` guard — and it can never close before it opened.
+	closed := opened.AddDate(0, 0, max(closedAfter, 1))
+	if closed.After(now) {
+		closed = now
+	}
+	_, err := r.DB().Exec(
+		`UPDATE job SET closed_at = ? WHERE id = ? AND org_id = ? AND closed_at <> ''`,
+		closed.Format(time.RFC3339), jobID, orgID,
+	)
+	return err
+}
+
 func seedDemo(r *repo.Repo) (demoCreds, error) {
 	creds := demoCreds{Email: "demo@pango.local", Password: "demopassword"}
 
@@ -106,11 +162,20 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 		status    []string // transitions applied in order
 		costs     []domain.CostEntry
 		minutes   []int64
+		// daysAgo backdates the job after it is created (see backdateJob). A
+		// real portfolio accumulates over weeks, and seeding every job at
+		// "now" made the reports timeline a single column — which reads as a
+		// broken chart rather than as a quiet month.
+		daysAgo int
+		// closedAfter is how many days after opening a closed job was closed.
+		// Ignored unless the last status transition is a terminal one.
+		closedAfter int
 	}
 	specs := []jobSpec{
 		{
 			building: riverside.ID, unitLabel: "Flat 3A",
-			title:    "Kitchen mixer leaking under sink",
+			title:   "Kitchen mixer leaking under sink",
+			daysAgo: 31, closedAfter: 4,
 			desc:     "Tenant reports water pooling in the cupboard overnight.",
 			priority: domain.PriorityHigh, category: "plumbing", assignee: plumber.ID,
 			status: []string{domain.StatusTriaged, domain.StatusAssigned, domain.StatusInProgress, domain.StatusResolved, domain.StatusClosed},
@@ -127,6 +192,7 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 		{
 			building: riverside.ID, unitLabel: "3a",
 			title:    "Bathroom extractor fan noisy",
+			daysAgo:  6,
 			desc:     "Intermittent rattle, worse in the evenings.",
 			priority: domain.PriorityLow, category: "electrical", assignee: electrician.ID,
 			status:  []string{domain.StatusTriaged, domain.StatusAssigned},
@@ -136,6 +202,7 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 		{
 			building: riverside.ID, unitLabel: "3 A",
 			title:    "Front door lock stiff",
+			daysAgo:  12,
 			priority: domain.PriorityNormal, category: "general", assignee: staff.ID,
 			status:  []string{domain.StatusInProgress},
 			minutes: []int64{20},
@@ -143,6 +210,7 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 		{
 			building: riverside.ID, unitLabel: "Flat 12",
 			title:    "No hot water",
+			daysAgo:  2,
 			desc:     "Geyser element suspected.",
 			priority: domain.PriorityEmergency, category: "plumbing", assignee: plumber.ID,
 			status: []string{domain.StatusAssigned, domain.StatusInProgress},
@@ -154,12 +222,14 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 		{
 			building: harbour.ID, unitLabel: "Unit 7",
 			title:    "Balcony door seal perished",
+			daysAgo:  9,
 			priority: domain.PriorityNormal, category: "general",
 			status: []string{domain.StatusTriaged},
 		},
 		{
 			building: harbour.ID, unitLabel: "7",
-			title:    "Parking bay light out",
+			title:   "Parking bay light out",
+			daysAgo: 26, closedAfter: 3,
 			priority: domain.PriorityLow, category: "electrical", assignee: electrician.ID,
 			status: []string{domain.StatusAssigned, domain.StatusInProgress, domain.StatusResolved, domain.StatusClosed},
 			costs: []domain.CostEntry{
@@ -171,19 +241,22 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 		{
 			building: harbour.ID, unitLabel: "Common",
 			title:    "Lift service overdue",
+			daysAgo:  19,
 			desc:     "Annual service certificate expires end of month.",
 			priority: domain.PriorityHigh, category: "compliance",
 			status: []string{domain.StatusTriaged, domain.StatusOnHold},
 		},
 		{
 			building: oakmead.ID, unitLabel: "Shop 2",
-			title:    "Shopfront glass chipped",
+			title:   "Shopfront glass chipped",
+			daysAgo: 23, closedAfter: 5,
 			priority: domain.PriorityNormal, category: "general",
 			status: []string{domain.StatusTriaged, domain.StatusCancelled},
 		},
 		{
 			building: oakmead.ID, unitLabel: "Flat 2",
 			title:    "Damp patch on bedroom ceiling",
+			daysAgo:  15,
 			desc:     "Below the shop's roof outlet — possible blocked downpipe.",
 			priority: domain.PriorityHigh, category: "damp", assignee: staff.ID,
 			status: []string{domain.StatusTriaged, domain.StatusAssigned, domain.StatusInProgress},
@@ -191,6 +264,85 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 				{Kind: domain.CostContractor, Description: "Damp survey", AmountMinor: 120000},
 			},
 			minutes: []int64{120, 60},
+		},
+
+		// Closed history. Without a tail of finished work the board shows only
+		// a backlog, the "closed" series on the timeline is flat, and the
+		// per-unit cost report has nothing to rank.
+		{
+			building: riverside.ID, unitLabel: "Flat 8",
+			title:   "Intercom panel not buzzing",
+			daysAgo: 29, closedAfter: 2,
+			desc:     "Handset lifts but no release for the street door.",
+			priority: domain.PriorityNormal, category: "electrical", assignee: electrician.ID,
+			status: []string{domain.StatusTriaged, domain.StatusAssigned, domain.StatusInProgress, domain.StatusResolved, domain.StatusClosed},
+			costs: []domain.CostEntry{
+				{Kind: domain.CostMaterial, Description: "Door release solenoid", AmountMinor: 51000},
+				{Kind: domain.CostLabour, Description: "Fit and test", AmountMinor: 60000},
+			},
+			minutes: []int64{55},
+		},
+		{
+			building: harbour.ID, unitLabel: "Unit 3",
+			title:   "Gutter overflowing at rear",
+			daysAgo: 24, closedAfter: 6,
+			desc:     "Water tracking down the back wall in heavy rain.",
+			priority: domain.PriorityHigh, category: "damp", assignee: staff.ID,
+			status: []string{domain.StatusTriaged, domain.StatusAssigned, domain.StatusInProgress, domain.StatusResolved, domain.StatusClosed},
+			costs: []domain.CostEntry{
+				{Kind: domain.CostContractor, Description: "Gutter clear and re-hang", AmountMinor: 145000},
+			},
+			minutes: []int64{180},
+		},
+		{
+			building: oakmead.ID, unitLabel: "Flat 5",
+			title:   "Kitchen window catch broken",
+			daysAgo: 21, closedAfter: 1,
+			priority: domain.PriorityLow, category: "general", assignee: staff.ID,
+			status: []string{domain.StatusAssigned, domain.StatusResolved, domain.StatusClosed},
+			costs: []domain.CostEntry{
+				{Kind: domain.CostMaterial, Description: "Espagnolette handle", AmountMinor: 18500},
+			},
+			minutes: []int64{25},
+		},
+		{
+			building: riverside.ID, unitLabel: "Common",
+			title:   "Garage door remote range poor",
+			daysAgo: 17, closedAfter: 4,
+			priority: domain.PriorityNormal, category: "general", assignee: electrician.ID,
+			status: []string{domain.StatusTriaged, domain.StatusAssigned, domain.StatusResolved, domain.StatusClosed},
+			costs: []domain.CostEntry{
+				{Kind: domain.CostMaterial, Description: "External aerial kit", AmountMinor: 39000},
+			},
+			minutes: []int64{50},
+		},
+		{
+			building: riverside.ID, unitLabel: "Flat 12",
+			title:   "Smoke alarm chirping",
+			daysAgo: 13, closedAfter: 1,
+			priority: domain.PriorityHigh, category: "compliance", assignee: staff.ID,
+			status: []string{domain.StatusAssigned, domain.StatusResolved, domain.StatusClosed},
+			costs: []domain.CostEntry{
+				{Kind: domain.CostMaterial, Description: "10-year sealed alarm", AmountMinor: 22000},
+			},
+			minutes: []int64{20},
+		},
+		{
+			building: harbour.ID, unitLabel: "Unit 7",
+			title:    "Bathroom silicone mouldy",
+			daysAgo:  8,
+			desc:     "Tenant asked at the last inspection; not urgent.",
+			priority: domain.PriorityLow, category: "damp",
+			status: []string{domain.StatusTriaged},
+		},
+		{
+			building: oakmead.ID, unitLabel: "Shop 2",
+			title:    "Roller shutter jamming",
+			daysAgo:  4,
+			desc:     "Tenant can close it but it needs two people.",
+			priority: domain.PriorityHigh, category: "general", assignee: staff.ID,
+			status:  []string{domain.StatusTriaged, domain.StatusAssigned},
+			minutes: []int64{35},
 		},
 	}
 
@@ -242,6 +394,9 @@ func seedDemo(r *repo.Repo) (demoCreds, error) {
 			}); err != nil {
 				return creds, err
 			}
+		}
+		if err := backdateJob(r, o, j.ID, spec.daysAgo, spec.closedAfter); err != nil {
+			return creds, fmt.Errorf("backdate %q: %w", spec.title, err)
 		}
 	}
 

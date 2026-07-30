@@ -45,15 +45,44 @@ const DEMO_PASSWORD = 'demopassword'
 // that list — "building overview").
 const ROUTES = [
   { name: 'jobs-board', hash: '/jobs', hero: true },
+  // job-detail must come before jobs-list: the list toggle persists, and a
+  // board rendered as a table changes which link is first in the DOM.
   { name: 'job-detail', hash: null }, // resolved at capture time, see below
-  { name: 'inspection-comparison', hash: null }, // ditto
+  { name: 'job-costs', hash: null }, // the same job's append-only ledger tab
+  { name: 'jobs-list', hash: null }, // the board's list view — resolved at capture time
+  { name: 'raise-job', hash: '/jobs/new' },
   { name: 'inspections', hash: '/inspections' },
-  { name: 'reports', hash: '/reports' },
+  { name: 'inspection-comparison', hash: null }, // resolved at capture time
   { name: 'buildings', hash: '/buildings' },
+  { name: 'building-detail', hash: null }, // resolved at capture time
+  { name: 'reports', hash: '/reports' },
   { name: 'settings', hash: '/settings' },
 ]
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Open a job worth photographing from the board.
+ *
+ * Not simply the first card: the board orders by status column, and the first
+ * one is whatever happens to be triaged — which in the seed has no costs, no
+ * hours and one status event, so the shot contradicts a caption about
+ * append-only ledgers. This prefers a job the demo deliberately gave a ledger,
+ * an assignee and both visibilities of event, and falls back to any real job so
+ * a reseeded demo cannot break the run.
+ *
+ * The :not() is load-bearing: "Raise a job" is also a /jobs/ link and sits
+ * earlier in the DOM, so a bare first() captures the new-job form and files it
+ * as the job detail shot.
+ */
+async function openDemoJob(page) {
+  const jobs = page.locator('a[href^="/jobs/"]:not([href="/jobs/new"])')
+  const preferred = jobs.filter({ hasText: /damp patch on bedroom ceiling/i }).first()
+  const link = (await preferred.count()) ? preferred : jobs.first()
+  await link.click()
+  await page.waitForURL(/\/jobs\/(?!new).+/)
+  await sleep(300)
+}
 
 async function health() {
   try {
@@ -173,6 +202,17 @@ async function run() {
         const page = await ctx.newPage()
 
         await page.goto(`${BASE_URL}/login`, { waitUntil: 'networkidle' })
+
+        // The sign-in screen is a surface too, and it is the first thing anyone
+        // evaluating the product sees. Capture it before the credentials go in.
+        await page.evaluate(() => document.fonts.ready)
+        await sleep(250)
+        {
+          const name = `sign-in${theme === 'dark' ? '-dark' : ''}.png`
+          await page.screenshot({ path: join(OUT_DIRS[0], name) })
+          console.log(`  ✓ ${name}`)
+        }
+
         await page.getByLabel('Email').fill(DEMO_EMAIL)
         await page.getByLabel('Password').fill(DEMO_PASSWORD)
         await page.getByRole('button', { name: /sign in/i }).click()
@@ -182,10 +222,35 @@ async function run() {
           let target = route.hash
           if (route.name === 'job-detail') {
             // Follow the first job card from the board rather than hard-coding
-            // an id — ids are generated per demo run.
+            // an id — ids are generated per demo run. The :not() is load-bearing:
+            // the "Raise a job" call to action is also an /jobs/ link and sits
+            // earlier in the DOM, so a bare first() captures the new-job form and
+            // silently files it as the job detail shot.
             await page.goto(`${BASE_URL}/jobs`, { waitUntil: 'networkidle' })
-            await page.locator('a[href^="/jobs/"]').first().click()
-            await page.waitForURL(/\/jobs\/.+/)
+            await openDemoJob(page)
+          } else if (route.name === 'job-costs') {
+            // The append-only ledger is the claim that money never overwrites,
+            // so it gets its own shot rather than living behind a tab nobody
+            // sees. Same job as job-detail.
+            await page.goto(`${BASE_URL}/jobs`, { waitUntil: 'networkidle' })
+            await openDemoJob(page)
+            await page.getByRole('tab', { name: /costs? & time/i })
+              .or(page.getByRole('button', { name: /costs? & time/i }))
+              .first()
+              .click()
+            await sleep(400)
+          } else if (route.name === 'jobs-list') {
+            // The board has a second view — a dense table — and it is the one
+            // people actually use once a portfolio outgrows a kanban column.
+            await page.goto(`${BASE_URL}/jobs`, { waitUntil: 'networkidle' })
+            await page.getByRole('button', { name: /^list$/i }).click()
+            await sleep(300)
+          } else if (route.name === 'building-detail') {
+            // Follow the first building card; ids are per-run.
+            await page.goto(`${BASE_URL}/buildings`, { waitUntil: 'networkidle' })
+            await page.locator('a[href^="/buildings/"]').first().click()
+            await page.waitForURL(/\/buildings\/.+/)
+            await sleep(300)
           } else if (route.name === 'inspection-comparison') {
             // The ingoing/outgoing diff is the product's differentiator, so it
             // gets its own shot. Follow the outgoing inspection from the list —

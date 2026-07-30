@@ -445,27 +445,53 @@
          Nothing here is a mock-up or a render.</p>
     </div>
 
+    <p class="label reveal" style="display:block;margin:0 0 20px">Working the board</p>
     <div class="gallery">
       <figure class="reveal">
         <div class="shot"><img src="./screenshots/job-detail.png" alt="A job detail page in Pango with its cost ledger and event thread." width="1440" height="900" loading="lazy"></div>
-        <figcaption><b>Job detail.</b> Append-only costs and hours, and an event thread with a tenant-visible toggle on each entry.</figcaption>
+        <figcaption><b>Job detail.</b> Append-only costs and hours, and an event thread with a tenant-visible toggle on each entry — so you choose exactly what a tenant would see.</figcaption>
       </figure>
       <figure class="reveal" style="transition-delay:.08s">
-        <div class="shot"><img src="./screenshots/reports.png" alt="Reports in Pango showing spend and labour per building and per unit." width="1440" height="900" loading="lazy"></div>
-        <figcaption><b>Reports.</b> Spend and labour per building and per unit, recomputed from the ledger on every view.</figcaption>
+        <div class="shot"><img src="./screenshots/job-costs.png" alt="A job's append-only cost and time ledgers in Pango." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>The ledger.</b> Materials, contractors and hours as separate entries with dates. Nothing is edited — a correction is a new line, and the total is summed on read.</figcaption>
       </figure>
       <figure class="reveal">
-        <div class="shot"><img src="./screenshots/inspections.png" alt="The inspections list in Pango, showing ingoing and outgoing pairs per unit." width="1440" height="900" loading="lazy"></div>
-        <figcaption><b>Inspections.</b> Ingoing and outgoing pairs per unit, scheduled and tracked to completion.</figcaption>
+        <div class="shot"><img src="./screenshots/jobs-list.png" alt="The Pango jobs board in its dense list view." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>List view.</b> The same jobs as a dense table — what you want once a portfolio outgrows a kanban column.</figcaption>
+      </figure>
+      <figure class="reveal">
+        <div class="shot"><img src="./screenshots/raise-job.png" alt="Raising a job against a building and unit in Pango." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Raise a job.</b> Against a building and a door. Type a unit that doesn't exist yet and it is created — normalised, so it can never fork into three.</figcaption>
       </figure>
       <figure class="reveal" style="transition-delay:.08s">
-        <div class="shot"><img src="./screenshots/buildings.png" alt="Buildings and units in Pango, with units created on first use." width="1440" height="900" loading="lazy"></div>
-        <figcaption><b>Buildings &amp; units.</b> Units become real records on first use, normalised as they are typed.</figcaption>
+        <div class="shot"><img src="./screenshots/reports.png" alt="Reports in Pango showing created vs closed and spend per building and unit." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Reports.</b> Created against closed over the month, then spend and hours per building and per unit — recomputed from the ledger on every view, never cached.</figcaption>
       </figure>
     </div>
 
-    <p class="prose reveal" style="margin-top:34px">
-      Dark-mode shots of every surface are in the
+    <p class="label reveal" style="display:block;margin:52px 0 20px">Property records &amp; inspections</p>
+    <div class="gallery">
+      <figure class="reveal">
+        <div class="shot"><img src="./screenshots/building-detail.png" alt="A building's detail page in Pango with its units and jobs." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Building detail.</b> Units on record with the key each one normalised to, and every job ever raised against the building.</figcaption>
+      </figure>
+      <figure class="reveal" style="transition-delay:.08s">
+        <div class="shot"><img src="./screenshots/inspections.png" alt="The inspections list in Pango, showing ingoing and outgoing pairs per unit." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Inspections.</b> Ingoing and outgoing pairs per unit, scheduled and tracked to completion.</figcaption>
+      </figure>
+      <figure class="reveal">
+        <div class="shot"><img src="./screenshots/buildings.png" alt="Buildings in Pango." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Buildings.</b> Every property the organisation manages, with the unit scheme that governs how its doors are named.</figcaption>
+      </figure>
+      <figure class="reveal" style="transition-delay:.08s">
+        <div class="shot"><img src="./screenshots/settings.png" alt="Settings in Pango — organisation, people, node identity and sync." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Settings.</b> Organisation, people, this node's identity and its enrolled peers. No billing page, because there is nothing to bill.</figcaption>
+      </figure>
+    </div>
+
+    <p class="prose reveal" style="margin-top:38px">
+      Twelve surfaces, each in light <strong>and</strong> dark. The complete set —
+      including every dark-mode shot — is in the
       <a class="textlink" href="./docs.html#screenshots">screenshot index <span class="arrow">→</span></a>
     </p>
   </div></section>
