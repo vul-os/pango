@@ -390,7 +390,7 @@ code, .mono { font-family: var(--mono); }
 .shot-bar span {
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 12.5px;
   color: var(--ink-3);
 }
 figure { margin: 0; }
@@ -461,6 +461,9 @@ figcaption b { color: var(--ink-2); font-weight: 600; }
   font-family: var(--sans);
   line-height: 1.6;
 }
+/* The global `:not(pre) > code { font-size: .85em }` rule takes this below the
+   12px floor (13.5 * .85 = 11.475) — these are read, not decorative. */
+.foot-note code { font-size: 1em; }
 
 /* ── Reveal on scroll ────────────────────────────────────────────────────── */
 

@@ -228,7 +228,7 @@ function JobCard({ job, buildingMap, unitsIndex, partyMap }) {
       <div className="flex items-center justify-between">
         <CategoryTag category={job.category} />
         {assignee ? (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-sunk text-[10px] font-semibold text-ink-muted" title={assignee.name}>
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-surface-sunk text-2xs font-semibold text-ink-muted" title={assignee.name}>
             {assignee.name[0]?.toUpperCase()}
           </span>
         ) : (
