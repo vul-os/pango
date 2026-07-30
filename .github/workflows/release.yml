@@ -1,3 +1,8 @@
+# no-broker-dep:allow-file: lines 20 and 117 below attribute the checksum-contract pattern
+# (scripts/verify.sh + this release job) to vul-os/ephor's RELEASE-TEMPLATE.md — a
+# copied-pattern credit, not a dependency; this workflow does not fetch from, build against, or
+# otherwise depend on ephor.
+#
 # Release: cross-compile the single embedded binary on a v* tag and attach it
 # to a draft GitHub Release.
 #
