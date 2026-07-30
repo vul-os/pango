@@ -2,7 +2,7 @@ package store
 
 // Identifiers must be mintable offline. A database sequence or an
 // auto-increment column would need coordination the moment two nodes both
-// accept writes while partitioned — exactly the case PropFix is built for
+// accept writes while partitioned — exactly the case Pango is built for
 // (ARCHITECTURE §2.1) — so ids are ULID-shaped: sortable by creation time and
 // collision-safe without anyone asking anyone's permission.
 //

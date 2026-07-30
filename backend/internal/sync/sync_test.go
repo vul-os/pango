@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/repo"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const testSecret = "shared-pairing-secret"
@@ -24,7 +24,7 @@ type node struct {
 
 func newNode(t *testing.T) *node {
 	t.Helper()
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}

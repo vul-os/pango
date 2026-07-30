@@ -18,9 +18,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/repo"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 type tenant struct {

@@ -1,4 +1,4 @@
-module github.com/vul-os/propfix/backend
+module github.com/vul-os/pango/backend
 
 go 1.25.0
 

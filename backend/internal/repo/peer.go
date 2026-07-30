@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const peerCols = `id, org_id, name, url, pubkey, enabled, last_sync_at, last_status, created_at`

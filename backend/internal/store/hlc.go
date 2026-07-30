@@ -1,6 +1,6 @@
 package store
 
-// Hybrid logical clocks give PropFix a total order over writes that were made
+// Hybrid logical clocks give Pango a total order over writes that were made
 // on machines which never spoke to each other — a contractor's tablet in a
 // basement and the office laptop both stamping the same job. Wall clocks alone
 // cannot do this: a tablet whose clock is three hours slow would have its edits

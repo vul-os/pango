@@ -7,16 +7,9 @@
 #
 # ── Known gaps at the time this workflow was written (see the repo furniture
 #    report for detail) ──────────────────────────────────────────────────────
-#   - The "Build frontend" step will fail until src/App.jsx and its route
-#     tree land — src/ is mid-build as of this commit. That is a real,
-#     correct failure: this workflow should not (and currently cannot)
-#     produce a release before the app builds. Do not silence it.
-#   - The compiled binary embeds the marketing site (site/ -> /site/) but not
-#     the built app: backend/cmd/propfix has no //go:embed for dist/ yet and
-#     main.go registers no "/" route. dist/ is still staged into the build
-#     context below so that the day that embed lands, this workflow picks it
-#     up with no changes — go tolerates an unreferenced directory under a
-#     package.
+#   - src/App.jsx and its route tree have since landed, and the compiled
+#     binary now embeds both the marketing site (site/ -> /site/) and the
+#     built app (dist/ -> "/", via app_embed.go + main.go's "/" route).
 #   - No PLATFORM code signing (macOS notarization / Windows Authenticode) is
 #     configured. Binaries ship unsigned to the OS loader, and Gatekeeper /
 #     SmartScreen will say so. What the release DOES carry is a sigstore build
@@ -98,9 +91,9 @@ jobs:
           GOARCH: ${{ matrix.goarch }}
           CGO_ENABLED: "0"
         run: |
-          rm -rf backend/cmd/propfix/site backend/cmd/propfix/dist
-          cp -R site backend/cmd/propfix/site
-          cp -R dist backend/cmd/propfix/dist
+          rm -rf backend/cmd/pango/site backend/cmd/pango/dist
+          cp -R site backend/cmd/pango/site
+          cp -R dist backend/cmd/pango/dist
 
           VERSION="${GITHUB_REF_NAME#v}"
           EXT=""
@@ -109,14 +102,14 @@ jobs:
           (cd backend && go build -tags embed_frontend \
             -trimpath \
             -ldflags "-s -w -X main.version=${VERSION}" \
-            -o "../propfix-${GOOS}-${GOARCH}${EXT}" ./cmd/propfix)
+            -o "../pango-${GOOS}-${GOARCH}${EXT}" ./cmd/pango)
 
-          rm -rf backend/cmd/propfix/site backend/cmd/propfix/dist
+          rm -rf backend/cmd/pango/site backend/cmd/pango/dist
 
       - uses: actions/upload-artifact@v4
         with:
-          name: propfix-${{ matrix.goos }}-${{ matrix.goarch }}
-          path: propfix-*
+          name: pango-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: pango-*
           if-no-files-found: error
 
   # ===========================================================================
@@ -231,13 +224,13 @@ jobs:
         with:
           draft: true
           generate_release_notes: true
-          name: propfix ${{ github.ref_name }}
+          name: pango ${{ github.ref_name }}
           body: |
             ### Verify before you run this
 
             ```sh
             curl -fsSLO https://raw.githubusercontent.com/${{ github.repository }}/${{ github.ref_name }}/scripts/verify.sh
-            bash verify.sh --tag ${{ github.ref_name }} --attest propfix-linux-amd64
+            bash verify.sh --tag ${{ github.ref_name }} --attest pango-linux-amd64
             ```
 
             `verify.sh` fetches `SHA256SUMS`, looks up the exact entry for the

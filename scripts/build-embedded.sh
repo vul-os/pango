@@ -11,8 +11,8 @@
 set -eu
 
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-site_staging="$root/backend/cmd/propfix/site"
-app_staging="$root/backend/cmd/propfix/dist"
+site_staging="$root/backend/cmd/pango/site"
+app_staging="$root/backend/cmd/pango/dist"
 
 if [ ! -d "$root/site" ]; then
   echo "build-embedded: no site/ at the repo root — nothing to embed" >&2
@@ -40,6 +40,6 @@ cp -R "$root/site/." "$site_staging/"
 cp -R "$root/dist/." "$app_staging/"
 
 cd "$root/backend"
-go build -tags embed_frontend -o "$root/backend/propfix" ./cmd/propfix
+go build -tags embed_frontend -o "$root/backend/pango" ./cmd/pango
 
-echo "build-embedded: wrote $root/backend/propfix"
+echo "build-embedded: wrote $root/backend/pango"

@@ -1,9 +1,9 @@
-// Package substrate binds PropFix to the shared merge engine — the compiled
+// Package substrate binds Pango to the shared merge engine — the compiled
 // Rust algebra published as github.com/vul-os/kotva/bindings/go and executed
 // through wazero, so CGO_ENABLED=0 and single-static-binary cross-compilation
 // are preserved.
 //
-// It implements store.Merger (docs/SYNC.md §10), which PropFix built as a seam
+// It implements store.Merger (docs/SYNC.md §10), which Pango built as a seam
 // before the substrate existed. Installing it makes the shared engine the merge
 // authority for this deployment. Leaving it out keeps the built-in HLC engine.
 // The choice is made at boot and never mixed: two engines with different total
@@ -12,7 +12,7 @@
 //
 // # The mapping, and the selection test behind each choice
 //
-// PropFix's replicated state is a set of SQL tables, each row addressed by a
+// Pango's replicated state is a set of SQL tables, each row addressed by a
 // ULID `id`, each write journalled as one store.Op. docs/SYNC.md §3 already
 // divides those tables into two merge rules, and internal/sync/classes.go holds
 // that division as data. This package maps those two rules onto the shared
@@ -33,7 +33,7 @@
 //	field   "row"
 //	value   bstr, rowBody(op) — see below
 //
-// Granularity is per ROW, not per column, because PropFix journals a whole row
+// Granularity is per ROW, not per column, because Pango journals a whole row
 // per write: store.Journal marshals the entire domain struct as the op payload
 // and sync/apply.go upserts every column from it. A per-column mapping would
 // claim a merge granularity the product does not actually have, and would
@@ -55,11 +55,11 @@
 //
 // THE STAMP IS LOAD-BEARING. §4.3 identifies a set element by its VALUE: two
 // adds carrying identical bytes are one element with two add-tags, not two
-// elements. PropFix reads a job's cost as SUM(amount_minor) over its entries,
+// elements. Pango reads a job's cost as SUM(amount_minor) over its entries,
 // so two entries that collapsed into one would read as half the money — on
 // every replica, converged, with no error anywhere. Stamping the element with
 // the op's own (wall, counter, author) makes element identity equal OP identity,
-// which is what PropFix's oplog primary key already is, so no two distinct ops
+// which is what Pango's oplog primary key already is, so no two distinct ops
 // can collapse no matter how alike their payloads are.
 //
 // The row_id in the target is not a substitute for the stamp. It makes the
@@ -78,30 +78,30 @@
 //
 // NO §4.5 death certificate, anywhere. Selection test: is there any user action
 // that restores this thing using the same ordinary operation that created it?
-// Yes, for every deletion PropFix has — a deleted unit can be re-created with
+// Yes, for every deletion Pango has — a deleted unit can be re-created with
 // the same key, and docs/SYNC.md §3 has a test that keeps that true. A
 // certificate dominates every later write to the object, so using one for an
 // ordinary soft delete would make the re-created row invisible on every replica
-// at once, with no error. PropFix's `deleted` flag replicates as an ordinary
+// at once, with no error. Pango's `deleted` flag replicates as an ordinary
 // register write and is dominated by the next one, which is the point.
 //
 // NO §4.6 PN-counter for money or hours. A counter would converge on the same
 // total and discard the entries, and the entries ARE the audit trail: who
 // recorded what, when, and what corrected it. §4.6's own closing note permits
-// SUM-over-a-union instead, which is what PropFix already does at read time.
+// SUM-over-a-union instead, which is what Pango already does at read time.
 //
 // NO §4.7 sequence and NO §4.8 movable tree. Nothing in the schema is an
 // ordered list or a reparentable hierarchy; unit-under-building is a foreign
 // key that never moves.
 //
-// NS is not used as the tenancy boundary. org_id is PropFix's tenancy boundary
+// NS is not used as the tenancy boundary. org_id is Pango's tenancy boundary
 // (§4.2 of ARCHITECTURE.md) and it is enforced on the apply path by
 // Engine.orgKnown, which drops an op for an organisation this node does not
 // hold. Carrying org_id inside the value keeps one engine per node rather than
 // one per organisation, which matters because Engine.SetMembers is engine-wide.
 // The cost is that §7's cross-namespace reference check does no work for
-// PropFix; that is a real gap, and it is a gap in a check that duplicates one
-// PropFix already performs in SQL.
+// Pango; that is a real gap, and it is a gap in a check that duplicates one
+// Pango already performs in SQL.
 //
 // # Where the rest of this is written down
 //
@@ -109,7 +109,7 @@
 //     the live schema by classes_test.go.
 //   - docs/SYNC.md §3 — the same division in prose, with the reasoning.
 //   - vectors_test.go — the frozen conformance vectors, which prove the engine
-//     computes the algebra. substrate_test.go proves PropFix hands it the right
+//     computes the algebra. substrate_test.go proves Pango hands it the right
 //     ops; the two are different claims and neither implies the other.
 package substrate
 
@@ -121,13 +121,13 @@ import (
 	"strings"
 
 	kotvasync "github.com/vul-os/kotva/bindings/go"
-	"github.com/vul-os/propfix/backend/internal/store"
-	propsync "github.com/vul-os/propfix/backend/internal/sync"
+	"github.com/vul-os/pango/backend/internal/store"
+	propsync "github.com/vul-os/pango/backend/internal/sync"
 )
 
 // EngineName identifies this algebra in anything that has to refuse a peer
-// running the other one. It is deliberately not PropFix's own engine name: the
-// built-in HLC engine ties on the author key spelled as PropFix spells it and
+// running the other one. It is deliberately not Pango's own engine name: the
+// built-in HLC engine ties on the author key spelled as Pango spells it and
 // this engine ties on the same 32 bytes, so the two DO agree on the order — but
 // they disagree about element identity in an add-only set, and that is enough
 // that a replica set must be all one or all the other.
@@ -151,7 +151,7 @@ type kinds struct{ setAdd, lwwSet uint8 }
 
 func targetOf(tbl, rowID string) string { return tbl + targetSep + rowID }
 
-// splitTarget is the inverse. A row id may not contain the separator; PropFix
+// splitTarget is the inverse. A row id may not contain the separator; Pango
 // ids are Crockford base32 (store.NewID) so it never does, and an op whose
 // target claims otherwise is refused rather than split on the wrong slash.
 func splitTarget(target string) (tbl, rowID string, err error) {
@@ -232,7 +232,7 @@ func stamp(ms int64, counter uint32, authorHex string) ([]byte, error) {
 }
 
 // splitStamped separates a stamped set element back into its stamp and its body,
-// and returns the stamp in PropFix's own spelling so a caller can compare it
+// and returns the stamp in Pango's own spelling so a caller can compare it
 // against the op's HLC.
 func splitStamped(raw []byte) (hlcStamp string, body []byte, err error) {
 	if len(raw) < stampLen {
@@ -263,7 +263,7 @@ func untagBytes(tagged json.RawMessage) ([]byte, error) {
 	return b, nil
 }
 
-// syncOp maps one PropFix op onto the shared algebra.
+// syncOp maps one Pango op onto the shared algebra.
 //
 // A table with no merge rule is refused rather than defaulted. The built-in
 // engine can afford to ignore an op for a table it has never heard of (a newer
@@ -324,7 +324,7 @@ func syncOp(op store.Op, k kinds, ns string) (kotvasync.Op, error) {
 	}
 }
 
-// fromSyncOp is syncOp's inverse: it reads a PropFix op back out of an engine
+// fromSyncOp is syncOp's inverse: it reads a Pango op back out of an engine
 // op, so an envelope arriving from a peer can be checked against the op record
 // it claims to describe rather than trusted to agree with it.
 func fromSyncOp(sop kotvasync.Op, k kinds, ns string) (store.Op, error) {
@@ -341,7 +341,7 @@ func fromSyncOp(sop kotvasync.Op, k kinds, ns string) (store.Op, error) {
 			"substrate: op author %q is not a 32-byte public key in hex", sop.HLC.Author)
 	}
 	if sop.HLC.Wall > uint64(store.MaxWallMS) {
-		return store.Op{}, fmt.Errorf("substrate: op wall clock %d is out of PropFix's stamp width",
+		return store.Op{}, fmt.Errorf("substrate: op wall clock %d is out of Pango's stamp width",
 			sop.HLC.Wall)
 	}
 	hlc := store.FormatHLC(int64(sop.HLC.Wall), sop.HLC.Counter, sop.HLC.Author)
@@ -367,7 +367,7 @@ func fromSyncOp(sop kotvasync.Op, k kinds, ns string) (store.Op, error) {
 		}
 		// The element's stamp and the op's own HLC are two recordings of one
 		// fact. A disagreement means the element identity the engine deduped on
-		// is not the identity PropFix's oplog deduped on, which is exactly the
+		// is not the identity Pango's oplog deduped on, which is exactly the
 		// divergence the stamp exists to prevent — so it is refused, not
 		// tolerated.
 		if elemStamp != hlc {

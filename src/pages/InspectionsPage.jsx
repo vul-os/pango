@@ -106,7 +106,7 @@ export default function InspectionsPage() {
         <EmptyState
           icon={<ClipboardIcon width={28} height={28} />}
           title={anyFilter ? 'No inspections match these filters' : 'No inspections scheduled'}
-          description="Schedule an ingoing inspection when a tenancy starts, and an outgoing one when it ends — PropFix compares them automatically."
+          description="Schedule an ingoing inspection when a tenancy starts, and an outgoing one when it ends — Pango compares them automatically."
           action={
             <Button variant="primary" onClick={() => setOpen(true)}>
               Schedule inspection

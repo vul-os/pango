@@ -1,6 +1,6 @@
 # Inspections
 
-Inspections are the half of PropFix that is not a ticket system, and they are the
+Inspections are the half of Pango that is not a ticket system, and they are the
 reason the product exists. Maintenance job tracking is a well-served category.
 **Ingoing/outgoing condition comparison is not**, and it is where the money and
 the arguments are.
@@ -16,10 +16,10 @@ in as "condition: good" across forty line items in ninety seconds.
 The deposit deduction that follows is not adjudicated on facts. It is adjudicated
 on who is more insistent, or who can afford to escalate.
 
-PropFix's claim is narrow and worth stating exactly: **it does not decide who is
+Pango's claim is narrow and worth stating exactly: **it does not decide who is
 right.** It makes the ingoing and outgoing captures structurally comparable, so
 that the conversation is about evidence rather than recollection. If nobody
-captured the counter on the way in, PropFix will show you that nobody captured
+captured the counter on the way in, Pango will show you that nobody captured
 the counter on the way in.
 
 ## 2. Entities
@@ -127,7 +127,7 @@ are closed").
 This closes a hole the legacy system had: its completion handler set nothing
 and rejected nothing, so a "completed" inspection could still be edited
 underneath the record that was supposed to be the final one — which defeats
-the entire evidentiary point of a move-out capture. The only way PropFix
+the entire evidentiary point of a move-out capture. The only way Pango
 corrects a completed inspection is the same way it corrects anything else
 append-only: a new inspection, never a mutation of the old one.
 
@@ -170,7 +170,7 @@ returns `ErrMismatch`. The five outcomes, deliberately five rather than three:
 | `unchanged` | Same condition both runs. |
 | `deteriorated` | Condition is worse, per the ranked scale (`ok` < `wear` < `damage` < `missing`). The candidate deduction. |
 | `improved` | Condition is better. It happens — a tenant replaces a broken blind. |
-| `not_captured_ingoing` | There is no baseline. PropFix says so plainly rather than presenting it as deterioration. |
+| `not_captured_ingoing` | There is no baseline. Pango says so plainly rather than presenting it as deterioration. |
 | `not_captured_outgoing` | The move-out run skipped the item. |
 
 `na` (not applicable) is excluded from the ranked scale entirely: a fitting
@@ -201,7 +201,7 @@ label.
 
 ### Fair-wear-and-tear
 
-PropFix does **not** and will not decide what counts as fair wear and tear.
+Pango does **not** and will not decide what counts as fair wear and tear.
 That is a legal and jurisdictional judgement, it varies by country and lease,
 and a piece of software asserting it would be both wrong and unhelpfully
 confident. The comparison surfaces the delta and the evidence; a human decides
@@ -242,7 +242,7 @@ Not built:
 | Piece | Status |
 |---|---|
 | Entity design (this document + ARCHITECTURE §4.2) | Shipped |
-| Migrations for templates / inspections / findings (`store/migrations/300_inspections.sql`, `301_inspection_job_link.sql`) | Shipped |
+| Migrations for templates / inspections / findings (`store/migrations/300_inspections.sql`, `300_inspections.sql`) | Shipped |
 | Template CRUD and item ordering | Shipped (`repo/template.go`) |
 | Offline capture (create inspection, add finding) | Shipped (`repo/inspection.go`, `repo/finding.go`) |
 | Completion immutability | Shipped (§4) |

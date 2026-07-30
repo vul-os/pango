@@ -3,7 +3,7 @@ package api
 // Registration, login, logout.
 //
 // Registration creates an organisation and its first operator account together.
-// It is open only while no account exists yet — a PropFix node belongs to one
+// It is open only while no account exists yet — a Pango node belongs to one
 // organisation and the person who sets it up, and a permanently open
 // registration endpoint on a box exposed to a LAN is an invitation to create an
 // account nobody notices. Once the first account exists, further accounts are
@@ -13,7 +13,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 type registerReq struct {

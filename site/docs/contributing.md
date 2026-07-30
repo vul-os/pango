@@ -1,6 +1,6 @@
-# Contributing to PropFix
+# Contributing to Pango
 
-Thanks for looking. PropFix is being rebuilt from scratch, so contributions
+Thanks for looking. Pango is being rebuilt from scratch, so contributions
 land on a mostly empty floor — which is the good part.
 
 ## Read this first

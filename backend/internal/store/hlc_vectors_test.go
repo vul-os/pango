@@ -2,7 +2,7 @@ package store
 
 // Runs conformance/hlc_vectors.json against this package's HLC.
 //
-// The point of a vector file rather than more Go assertions: PropFix's HLC and
+// The point of a vector file rather than more Go assertions: Pango's HLC and
 // FlowStock's are near-identical copies that nothing forces to stay identical
 // (docs/SYNC.md §11). Hand-written tests in two repositories drift silently.
 // A shared file does not — either both implementations run it or the one that

@@ -2,7 +2,7 @@ package store
 
 // Migrations are embedded in the binary and applied by the binary itself
 // (§10). There is no external migration tool because there is no operator
-// running one: PropFix ships as a single file that someone copies onto a NAS or
+// running one: Pango ships as a single file that someone copies onto a NAS or
 // a Raspberry Pi and runs. A schema that needed a second command to be usable
 // would be a schema that is sometimes not applied.
 //

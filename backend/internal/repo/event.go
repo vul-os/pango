@@ -15,8 +15,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const eventCols = `id, org_id, job_id, kind, body, actor_party_id, visibility, hlc, created_at`

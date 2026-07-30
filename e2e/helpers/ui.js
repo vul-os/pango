@@ -7,7 +7,7 @@
  * little to no adjustment.
  */
 
-export const DEMO_EMAIL = 'demo@propfix.local'
+export const DEMO_EMAIL = 'demo@pango.local'
 export const DEMO_PASSWORD = 'demopassword'
 
 /** Log in through the real form and wait for the redirect to /jobs. */

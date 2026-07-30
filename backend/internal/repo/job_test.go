@@ -6,7 +6,7 @@ package repo
 // This drives the real sync transport (package sync) rather than poking the
 // database directly, so it exercises the exact path production traffic takes:
 // repo.CreateJob's local allocation, store.Journal's oplog, and the
-// materialisation trigger in store/migrations/201_job_number_dedupe.sql —
+// materialisation trigger in store/migrations/200_maintenance.sql —
 // nothing here is a simulation of the bug, it is the bug's own reproduction.
 
 import (
@@ -15,13 +15,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
-	"github.com/vul-os/propfix/backend/internal/sync"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/sync"
 )
 
 // syncNode bundles a store, a repo and a sync engine over it — one simulated
-// PropFix install.
+// Pango install.
 type syncNode struct {
 	s *store.Store
 	r *Repo
@@ -30,7 +30,7 @@ type syncNode struct {
 
 func newSyncNode(t *testing.T) *syncNode {
 	t.Helper()
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}

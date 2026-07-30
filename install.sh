@@ -1,10 +1,10 @@
 #!/bin/sh
 # =============================================================================
-# install.sh — fetch, VERIFY and install a prebuilt propfix binary.
+# install.sh — fetch, VERIFY and install a prebuilt pango binary.
 #
 # POSIX sh, no bashisms, so it runs under dash/ash/sh as well as bash/zsh.
 #
-#   curl -fsSLO https://raw.githubusercontent.com/vul-os/propfix/main/install.sh
+#   curl -fsSLO https://raw.githubusercontent.com/vul-os/pango/main/install.sh
 #   less install.sh          # review before running
 #   sh install.sh
 #
@@ -32,7 +32,7 @@
 # --------------------------------------------
 #  1. NO FALL-OPEN. If the release version cannot be resolved, this script does
 #     NOT guess a tag, fall back to "main", or install anything. It stops and
-#     tells you to pin PROPFIX_VERSION yourself.
+#     tells you to pin PANGO_VERSION yourself.
 #  2. NO SILENT DEATH AT A PIPELINE. Under `set -e` a lookup whose grep matches
 #     nothing can kill the script before the "not found" guard below it ever
 #     runs. Every lookup here ends in `|| true` and its result is then
@@ -43,7 +43,7 @@
 #     string, so no filename or digest can render as a format or an escape.
 #  4. NO SUBSTRING / REGEX NAME MATCH. The asset name is compared by awk
 #     against FIELD 2 of the manifest, as a string. A substring grep treats the
-#     name as a regex -- every "." in "propfix-windows-amd64.exe" is a wildcard
+#     name as a regex -- every "." in "pango-windows-amd64.exe" is a wildcard
 #     -- and would happily return the digest of "...exe.sig".
 #
 # EXIT CODES
@@ -64,10 +64,10 @@
 #
 # ENVIRONMENT
 # -----------
-#   PROPFIX_VERSION      pin an exact tag, e.g. v0.1.0 (skips the API lookup)
-#   PROPFIX_INSTALL_DIR  where to install (default ~/.local/bin)
-#   PROPFIX_REPO         owner/repo (default vul-os/propfix)
-#   PROPFIX_BASE_URL     fetch assets from this base instead of GitHub
+#   PANGO_VERSION      pin an exact tag, e.g. v0.1.0 (skips the API lookup)
+#   PANGO_INSTALL_DIR  where to install (default ~/.local/bin)
+#   PANGO_REPO         owner/repo (default vul-os/pango)
+#   PANGO_BASE_URL     fetch assets from this base instead of GitHub
 #                        Releases; must be https:// (or loopback, for tests)
 #
 #   sh install.sh --selftest    prove the refusals still fire (needs python3)
@@ -76,10 +76,10 @@
 # the release published, which is trusted as far as its TLS origin and no
 # further. To also check the sigstore build provenance GitHub attached at
 # release time, run the repo's `scripts/verify.sh --tag vX.Y.Z --attest ASSET`,
-# or `gh attestation verify <file> --repo vul-os/propfix`. A pass here never
+# or `gh attestation verify <file> --repo vul-os/pango`. A pass here never
 # implies more than it checked.
 #
-# NOTE: propfix has no tagged release yet (see CHANGELOG.md -- the rebuild is
+# NOTE: pango has no tagged release yet (see CHANGELOG.md -- the rebuild is
 # in progress) and release.yml publishes a DRAFT release, which the GitHub
 # API's `releases/latest` does not report. Until a release is published, the
 # version lookup below fails CLOSED with exit 13 rather than installing
@@ -87,10 +87,10 @@
 # =============================================================================
 set -eu
 
-REPO="${PROPFIX_REPO:-vul-os/propfix}"
-BINARY="propfix"
+REPO="${PANGO_REPO:-vul-os/pango}"
+BINARY="pango"
 MANIFEST="SHA256SUMS"
-HTTP_TIMEOUT="${PROPFIX_HTTP_TIMEOUT:-120}"
+HTTP_TIMEOUT="${PANGO_HTTP_TIMEOUT:-120}"
 
 E_USAGE=2
 E_SUMS_FETCH=3
@@ -195,17 +195,17 @@ fetch() {
 # The installer
 # =============================================================================
 run_install() {
-  say "Installing propfix..."
+  say "Installing pango..."
   say ""
 
   # -- Platform -------------------------------------------------------------
   OS="$(uname -s)"
   case "$OS" in
-    Linux*)  OS="linux";  INSTALL_DIR="${PROPFIX_INSTALL_DIR:-${HOME}/.local/bin}" ;;
-    Darwin*) OS="darwin"; INSTALL_DIR="${PROPFIX_INSTALL_DIR:-${HOME}/.local/bin}" ;;
+    Linux*)  OS="linux";  INSTALL_DIR="${PANGO_INSTALL_DIR:-${HOME}/.local/bin}" ;;
+    Darwin*) OS="darwin"; INSTALL_DIR="${PANGO_INSTALL_DIR:-${HOME}/.local/bin}" ;;
     MINGW*|MSYS*|CYGWIN*)
       OS="windows"
-      INSTALL_DIR="${PROPFIX_INSTALL_DIR:-${LOCALAPPDATA:-$HOME/AppData/Local}/propfix}" ;;
+      INSTALL_DIR="${PANGO_INSTALL_DIR:-${LOCALAPPDATA:-$HOME/AppData/Local}/pango}" ;;
     *) die "$E_USAGE" "unsupported operating system: $OS" ;;
   esac
 
@@ -223,11 +223,11 @@ run_install() {
   say "  Arch: $ARCH"
 
   # -- Where the assets come from -------------------------------------------
-  if [ -n "${PROPFIX_BASE_URL:-}" ]; then
-    BASE_URL="${PROPFIX_BASE_URL%/}"
+  if [ -n "${PANGO_BASE_URL:-}" ]; then
+    BASE_URL="${PANGO_BASE_URL%/}"
     say "  Source:  $BASE_URL"
   else
-    VERSION="${PROPFIX_VERSION:-}"
+    VERSION="${PANGO_VERSION:-}"
     if [ -z "$VERSION" ]; then
       # NO FALL-OPEN. If this lookup fails for any reason -- offline, rate
       # limit, DNS, no published release, a draft release the API does not
@@ -257,13 +257,13 @@ run_install() {
           "a DRAFT, which the API's releases/latest does not report), or this machine" \
           "cannot reach the release API." \
           "Check https://github.com/${REPO}/releases and pin one:" \
-          "  PROPFIX_VERSION=vX.Y.Z sh install.sh"
+          "  PANGO_VERSION=vX.Y.Z sh install.sh"
       fi
     fi
     case "$VERSION" in
       v[0-9]*) : ;;
       *) die "$E_USAGE" \
-           "PROPFIX_VERSION must name a release tag (vX.Y.Z); got: ${VERSION}" \
+           "PANGO_VERSION must name a release tag (vX.Y.Z); got: ${VERSION}" \
            "A branch name is not a release: it has no published manifest and its" \
            "bytes change under you. Pin a tag from" \
            "  https://github.com/${REPO}/releases" ;;
@@ -414,7 +414,7 @@ run_install() {
   say "    gh attestation verify \"${DEST}\" --repo ${REPO}"
   say ""
   say "  Quick start:"
-  say "    propfix --demo"
+  say "    pango --demo"
   say "    open http://localhost:8099"
   say ""
 }
@@ -432,7 +432,7 @@ import hashlib, sys, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 ASSET = sys.argv[1]
-GOOD  = b"propfix-binary-bytes\n" * 64
+GOOD  = b"pango-binary-bytes\n" * 64
 OTHER = b"tampered-substituted-bytes!!!\n" * 64
 HTML  = (b"<!DOCTYPE html><html><head><title>404 Not Found</title></head>"
          b"<body><h1>Not Found</h1></body></html>")
@@ -596,7 +596,7 @@ run_selftest() {
   printf '  %s\n' "----------------------------------------------------------------------------"
 
   run() {
-    env PROPFIX_BASE_URL="$1" PROPFIX_INSTALL_DIR="$_bin" PROPFIX_REPO="$REPO" \
+    env PANGO_BASE_URL="$1" PANGO_INSTALL_DIR="$_bin" PANGO_REPO="$REPO" \
         sh "$SELF_PATH"
   }
 
@@ -615,10 +615,10 @@ run_selftest() {
   # NO FALL-OPEN: an unreachable release API must stop, not guess a tag. Port 1
   # on loopback (nothing listens) stands in for "offline".
   expect_exit "release API unreachable"    "$E_NO_VERSION"     yes -- \
-    env PROPFIX_INSTALL_DIR="$_bin" PROPFIX_REPO="$REPO" PROPFIX_HTTP_TIMEOUT=5 \
+    env PANGO_INSTALL_DIR="$_bin" PANGO_REPO="$REPO" PANGO_HTTP_TIMEOUT=5 \
         sh "$SELF_PATH" --api-base "http://127.0.0.1:1/repos"
   expect_exit "a branch is not a release"  "$E_USAGE"          yes -- \
-    env PROPFIX_VERSION="main" PROPFIX_INSTALL_DIR="$_bin" sh "$SELF_PATH"
+    env PANGO_VERSION="main" PANGO_INSTALL_DIR="$_bin" sh "$SELF_PATH"
   expect_exit "unknown flag"               "$E_USAGE"          yes -- sh "$SELF_PATH" --skip-verify
 
   # The happy path must have produced a real, executable file. A selftest whose
@@ -661,7 +661,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/propfix-install.XXXXXX")"
+TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/pango-install.XXXXXX")"
 trap 'rm -rf "$TMP_DIR"' EXIT INT TERM
 
 if [ "$MODE" = "selftest" ]; then

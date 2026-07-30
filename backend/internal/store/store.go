@@ -1,4 +1,4 @@
-// Package store owns PropFix's local database: a SQLite file, an embedded
+// Package store owns Pango's local database: a SQLite file, an embedded
 // migration set, this node's Ed25519 identity, a hybrid logical clock and an
 // append-only oplog.
 //

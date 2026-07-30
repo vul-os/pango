@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 // replicatedTables reads the tables the schema itself marks as replicated: an
@@ -21,7 +21,7 @@ import (
 // the journal, not a replicated table, and is excluded by the `id` requirement.
 func replicatedTables(t *testing.T) map[string]map[string]bool {
 	t.Helper()
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}

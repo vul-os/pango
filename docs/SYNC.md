@@ -8,7 +8,7 @@
 > auth, batch caps). Where a decision is still open, this chapter says so
 > rather than picking silently; §11 lists what remains genuinely open.
 
-PropFix's sync is built around one requirement from
+Pango's sync is built around one requirement from
 [ARCHITECTURE.md](ARCHITECTURE.md) §2: **a node must keep working with no
 connectivity at all**, and still end up consistent with every other node later.
 A contractor in a basement, a manager walking a block with no signal, an office
@@ -74,7 +74,7 @@ are load-bearing:
    a file, and re-imported months later — the order never depends on who handed
    it to you.
 2. **The DMTAP-SYNC binding is lossless.** The substrate engine breaks ties on
-   the author public key too. Because PropFix's node id **is** its public key,
+   the author public key too. Because Pango's node id **is** its public key,
    the two engines break ties on the same value.
 
 The Vulos suite learned this the hard way: two products independently built
@@ -146,7 +146,7 @@ mapping onto the shared algebra's ownership classes (§10).
 Some CRDT vocabularies offer a *strong* delete that no later write can undo,
 meant for redactions and expiries. Using it for ordinary rows looks correct in
 every test that only ever deletes — and then silently swallows the next write to
-that row, on every node at once, with no error anywhere. PropFix does not use
+that row, on every node at once, with no error anywhere. Pango does not use
 it. A test that deletes a unit and re-creates it with the same key exists to keep
 that true.
 
@@ -216,7 +216,7 @@ Rather than journal the counter itself — which would not have prevented this
 specific collision anyway, since both nodes allocate before either has heard
 from the other — numbers are made collision-free by construction at the point
 a collision actually becomes visible: when the two rows meet during sync.
-`store/migrations/201_job_number_dedupe.sql` adds a trigger that fires once,
+`store/migrations/200_maintenance.sql` adds a trigger that fires once,
 on genuine insertion of a job row (never on an ordinary status or assignment
 update), and:
 
@@ -288,7 +288,7 @@ An operator enters the peer's URL. **No mDNS, no DHT, no rendezvous service, no
 directory.** There is nothing to enumerate and nothing to scan for.
 
 This is a deliberate cost: adding a peer takes a human action. In exchange, a
-PropFix node on a hostile network advertises nothing, and there is no discovery
+Pango node on a hostile network advertises nothing, and there is no discovery
 infrastructure to compromise, subpoena, or shut down.
 
 ## 8. Transport and authentication
@@ -314,7 +314,7 @@ The responder:
 1. checks the timestamp is **fresh** — rejecting stale and future-dated
    requests;
 2. verifies the signature against the **key presented in the request itself**
-   — there is nothing else it could verify against, because a PropFix node
+   — there is nothing else it could verify against, because a Pango node
    has no identifier separate from its key (ARCHITECTURE.md §7, §2 below):
    the value that names the caller and the value the signature is checked
    against are the same field. What stops impersonation is not a
@@ -333,7 +333,7 @@ enrolled a key proves it knows the secret, which authorises the responder to
 record (trust-on-first-use) the key it presents. From that moment the node
 authenticates **by key**, and the secret is no longer consulted for it.
 
-An optional `PROPFIX_SYNC_SECRET_FALLBACK` lets an already-enrolled peer keep
+An optional `PANGO_SYNC_SECRET_FALLBACK` lets an already-enrolled peer keep
 authenticating by secret alone. It defaults to **off**, so an enrolled peer that
 presents no valid signature is **rejected — the mesh fails closed.**
 
@@ -365,9 +365,10 @@ it on a trusted path:
   depends on it, and a relay is a content-visible L7 hop: it terminates TLS and
   can see what passes through. Treat it as reachability, not confidentiality.
 
-Peer URLs may be `http://` or `https://`. PropFix will not stop you using plain
+Peer URLs may be `http://` or `https://`. Pango will not stop you using plain
 HTTP on a LAN, because on a LAN that is often the correct call — but it is your
-call, made knowingly.
+call, made knowingly. On a public address it is not a call you get to make: see
+[CLOUD-NODE.md](CLOUD-NODE.md).
 
 ## 9. Folder transport — files as a wire
 
@@ -405,11 +406,11 @@ skipped. Every node converges once the bytes reach it.
 ## 10. The merge engine is a seam — and the substrate is now in it
 
 `store.Merger` is an interface. Leaving it `nil` gives the built-in HLC engine.
-Setting it swaps in **DMTAP-SYNC**, the shared substrate engine, so PropFix does
+Setting it swaps in **DMTAP-SYNC**, the shared substrate engine, so Pango does
 not maintain a private sync algebra forever.
 
 The choice is made **at boot and never mixed**. See the caution in
-[CONFIGURATION.md](CONFIGURATION.md#merge-engine--designed): two engines with
+[CONFIGURATION.md](CONFIGURATION.md#merge-engine--implemented): two engines with
 different total orders cannot share a replica set, and the failure is silent
 divergence rather than an error.
 
@@ -428,22 +429,22 @@ that cannot be detected afterwards.
 
 **It replaces the algebra, not the clock.** With it installed, the shared engine
 decides who won a conflicting write and what an add-only set contains.
-`store.Journal` still mints the stamp, because in PropFix a stamp is not only an
+`store.Journal` still mints the stamp, because in Pango a stamp is not only an
 ordering device — it is the oplog's primary key and the `hlc` column of every
 replicated row. So there is still exactly one minter and no second timeline; the
 engine's clock is fed and never asked.
 
 ### The two ownership classes
 
-The shared algebra offers six op kinds. PropFix uses two, mapped one-for-one
+The shared algebra offers six op kinds. Pango uses two, mapped one-for-one
 onto §3's two merge rules:
 
-| PropFix rule | Substrate class | Address |
+| Pango rule | Substrate class | Address |
 |---|---|---|
 | Last-writer-wins per row | §4.4 LWW register | target `<tbl>/<row_id>`, field `row` |
 | Union / append-only | §4.3 add-only set | target `<tbl>/<row_id>`, value stamped |
 
-Granularity is per **row**, not per column, because PropFix journals a whole row
+Granularity is per **row**, not per column, because Pango journals a whole row
 per write. A per-column mapping would claim a merge granularity the product does
 not have and would converge differently from the built-in engine on two
 concurrent edits to different columns of one row.
@@ -451,7 +452,7 @@ concurrent edits to different columns of one row.
 **§4.3 identifies a set element by its VALUE.** Two adds carrying identical
 bytes are one element with two add-tags, not two elements — and a job's cost is
 `SUM(amount_minor)` over its entries, so two collapsed entries read as half the
-money, converged, on every replica, with no error anywhere. PropFix is kept clear
+money, converged, on every replica, with no error anywhere. Pango is kept clear
 of that twice over: the row id is in the **target**, so two independently
 recorded entries are different objects rather than equal values; and the element's
 **value** is prefixed with the op's own `wall‖counter‖author`, so element
@@ -475,11 +476,11 @@ files, not module files, so they are not vendored with the dependency:
 
 ```
 git clone https://github.com/vul-os/kotva && git -C kotva checkout bindings/go/v0.2.1
-KOTVA_DIR=$PWD/kotva PROPFIX_REQUIRE_SYNC_VECTORS=1 go test ./internal/sync/substrate/ -count=1
+KOTVA_DIR=$PWD/kotva PANGO_REQUIRE_SYNC_VECTORS=1 go test ./internal/sync/substrate/ -count=1
 ```
 
 Without `KOTVA_DIR` the harness skips loudly and names how many vectors went
-unverified; `PROPFIX_REQUIRE_SYNC_VECTORS=1` turns that skip into a failure so CI
+unverified; `PANGO_REQUIRE_SYNC_VECTORS=1` turns that skip into a failure so CI
 can insist. This is a **different** claim from the WRAP vectors described in
 [WRAP.md](WRAP.md) — those are still unavailable locally — and neither implies
 the other.
@@ -519,12 +520,12 @@ Four files in this repository are near-copies of files in FlowStock
 (`github.com/vul-os/flowstock`). This is recorded here rather than left to be
 rediscovered:
 
-| PropFix | FlowStock counterpart | Relationship |
+| Pango | FlowStock counterpart | Relationship |
 |---|---|---|
-| `backend/internal/store/hlc.go` | `backend/internal/store/hlc.go` | same algorithm; PropFix names the tie-break field `author`, FlowStock names it `node` |
-| `backend/internal/store/identity.go` | `backend/internal/store/identity.go` | same algorithm; PropFix returns a typed `ErrCorruptIdentity` where FlowStock returns `sql.ErrNoRows` |
+| `backend/internal/store/hlc.go` | `backend/internal/store/hlc.go` | same algorithm; Pango names the tie-break field `author`, FlowStock names it `node` |
+| `backend/internal/store/identity.go` | `backend/internal/store/identity.go` | same algorithm; Pango returns a typed `ErrCorruptIdentity` where FlowStock returns `sql.ErrNoRows` |
 | `backend/internal/sync/folder.go` | `backend/internal/sync/folder.go` | same algorithm, different settings-key prefixes and locking placement |
-| `backend/internal/sync/transport_auth.go` | `backend/internal/sync/transport_auth.go` | **diverged.** PropFix's is a redesign, not a copy — see below |
+| `backend/internal/sync/transport_auth.go` | `backend/internal/sync/transport_auth.go` | **diverged.** Pango's is a redesign, not a copy — see below |
 
 **They must not import each other.** Neither product may take a build or
 runtime dependency on the other; a product that stops building because a
@@ -537,19 +538,19 @@ four files, and the reason is per-file rather than general:
 
 | File | Status after adopting the substrate |
 |---|---|
-| `store/hlc.go` | **Stays.** The engine supplies ordering, but PropFix's stamp is also the oplog's primary key and the `hlc` column of every replicated row, so the format cannot be dropped without a schema rewrite. It is additionally the home of the drift bound that has to sit *above* the engine (§2, "Clock skew"), because the engine's `Clock.Observe` takes no receiver reading and structurally cannot check one. |
+| `store/hlc.go` | **Stays.** The engine supplies ordering, but Pango's stamp is also the oplog's primary key and the `hlc` column of every replicated row, so the format cannot be dropped without a schema rewrite. It is additionally the home of the drift bound that has to sit *above* the engine (§2, "Clock skew"), because the engine's `Clock.Observe` takes no receiver reading and structurally cannot check one. |
 | `store/identity.go` | **Stays, and was reviewed rather than assumed.** The binding takes a `Signer` — an interface that asks for signatures and never for key material — which is the shape `CryptoSigner` already had. Adopting the binding's own identity objects would mean handing over the seed, so it would be a downgrade. `ErrCorruptIdentity` is kept. |
 | `sync/folder.go` | **Stays.** Sneakernet is a transport, not an algebra. Each node appends only its own `ops-<pubkey>.jsonl`, so the file-sync layer never has a conflict to resolve; the substrate has nothing to say about that and nothing better to offer. |
 | `sync/transport_auth.go` | **Stays, unchanged.** It authenticates a *request*; the substrate signs an *op*. Both now happen, at different layers. Nothing here was relaxed to accommodate the engine. |
 
-`conformance/hlc_vectors.json` also stays: it is the contract between PropFix's
+`conformance/hlc_vectors.json` also stays: it is the contract between Pango's
 built-in engine and FlowStock's, and the built-in engine is still what a node runs
 by default.
 
 > **One thing FlowStock needs to know.** Adding the drift bound exposed that the
 > `tick` group's `seed` field is a node's **own journal high-water mark**, not a
 > remote claim — two of those vectors seed decades ahead of `now_ms` on purpose.
-> PropFix's harness now seeds through the unguarded path and folds *remote* stamps
+> Pango's harness now seeds through the unguarded path and folds *remote* stamps
 > through the bound. The vector data is unchanged; only the harness's reading of
 > it moved. A FlowStock copy that spells seeding as `Observe` will fail those two
 > vectors the moment it grows the same bound.
@@ -557,11 +558,11 @@ by default.
 What can be done in the meantime, and has been, is to make the copies
 *verifiably* agree where a disagreement would be silent. `conformance/hlc_vectors.json`
 pins the HLC stamp format, the total order and the tie-break rule as data; both
-repositories can run it (PropFix does, in
+repositories can run it (Pango does, in
 `backend/internal/store/hlc_vectors_test.go`). Two engines that both converge
 and still pick different winners is the failure this guards.
 
-`transport_auth.go` is the one file where PropFix's version should be treated
+`transport_auth.go` is the one file where Pango's version should be treated
 as the reference rather than the copy. It collapses the node-id/pubkey pair
 into one value, so there is no lookup between the identity a caller claims and
 the key its signature is checked against; the shared secret is bootstrap-only

@@ -12,15 +12,12 @@ dev:
 # Go server, no embedded frontend — pairs with `make dev` (or a browser
 # pointed straight at :8099/api/...).
 dev-app:
-	cd backend && go run ./cmd/propfix --demo --addr 127.0.0.1:8799
+	cd backend && go run ./cmd/pango --demo --addr 127.0.0.1:8799
 
-# Full single-binary build: frontend bundle + Go binary with the site
-# embedded (build tag `embed_frontend`, see scripts/build-embedded.sh).
-# NOTE: as of this writing, backend/cmd/propfix only embeds the marketing
-# site (site/ -> /site/); there is no //go:embed for the built app (dist/)
-# yet and main.go registers no "/" route, so this binary does not yet serve
-# the app UI. It embeds the marketing site and runs the full API. See the
-# repo furniture report for details.
+# Full single-binary build: frontend bundle + Go binary with the site and
+# the built app embedded (build tag `embed_frontend`, see
+# scripts/build-embedded.sh). Serves the app UI at "/", the marketing site
+# at /site/, and the full API.
 build: build-frontend
 	./scripts/build-embedded.sh
 
@@ -39,7 +36,7 @@ test-go:
 #
 # internal/wrap's conformance harness reads its vectors from a sibling
 # checkout of github.com/vul-os/wrap. Without one it skips — and `go test`
-# prints nothing at all for a skipped test, which is how PropFix came to
+# prints nothing at all for a skipped test, which is how Pango came to
 # claim WRAP conformance while verifying none of it. This target re-runs
 # just that test verbosely so the harness's banner (which names every
 # vector that went unverified) is visible in the place people look.
@@ -92,7 +89,7 @@ ifndef KOTVA_DIR
 	@echo "  make sync-conformance KOTVA_DIR=/tmp/kotva"
 	@exit 1
 endif
-	cd backend && KOTVA_DIR=$(KOTVA_DIR) PROPFIX_REQUIRE_SYNC_VECTORS=1 \
+	cd backend && KOTVA_DIR=$(KOTVA_DIR) PANGO_REQUIRE_SYNC_VECTORS=1 \
 	  go test -count=1 -v -run TestFrozenSyncVectors ./internal/sync/substrate/
 
 # Browser end-to-end tests against the real binary (builds it if stale, see
@@ -109,7 +106,7 @@ test-e2e:
 lint:
 	npm run lint
 
-# Screenshots for docs/README (docs/screenshots/). Drives `./propfix --demo`
+# Screenshots for docs/README (docs/screenshots/). Drives `./pango --demo`
 # via Playwright. Same caveat as test-e2e: produces nothing useful until the
 # binary serves the app UI — see scripts/screenshots.mjs's own guard.
 screenshots:
@@ -133,4 +130,4 @@ check:
 	./scripts/check.sh
 
 run: build
-	./backend/propfix
+	./backend/pango

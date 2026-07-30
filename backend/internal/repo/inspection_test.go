@@ -10,7 +10,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 func TestInspectionRequiresValidBuilding(t *testing.T) {

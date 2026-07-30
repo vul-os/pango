@@ -19,7 +19,7 @@ import (
 
 func tempStore(t *testing.T) (*Store, string) {
 	t.Helper()
-	path := filepath.Join(t.TempDir(), "propfix.db")
+	path := filepath.Join(t.TempDir(), "pango.db")
 	s, err := Open(path)
 	if err != nil {
 		t.Fatalf("open: %v", err)
@@ -64,7 +64,7 @@ func TestOpenAppliesMigrations(t *testing.T) {
 }
 
 func TestMigrationsApplyExactlyOnce(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "propfix.db")
+	path := filepath.Join(t.TempDir(), "pango.db")
 
 	s1, err := Open(path)
 	if err != nil {
@@ -176,7 +176,7 @@ func TestDatabaseFileIsPrivate(t *testing.T) {
 }
 
 func TestIdentityIsStableAcrossRestart(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "propfix.db")
+	path := filepath.Join(t.TempDir(), "pango.db")
 
 	s1, err := Open(path)
 	if err != nil {
@@ -227,7 +227,7 @@ func TestIdentitySigning(t *testing.T) {
 }
 
 func TestCorruptIdentityIsFatal(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "propfix.db")
+	path := filepath.Join(t.TempDir(), "pango.db")
 	s, err := Open(path)
 	if err != nil {
 		t.Fatal(err)

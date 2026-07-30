@@ -3,7 +3,7 @@
 > [!WARNING]
 > **Nothing on this page runs yet.**
 >
-> PropFix is being rebuilt from scratch. At the time of writing there is no
+> Pango is being rebuilt from scratch. At the time of writing there is no
 > binary, no published image, no release, and no UI. This chapter documents the
 > intended path from clone to first job, so that the shape of the product is
 > reviewable before it is built — and so that each command can be promoted to
@@ -20,8 +20,8 @@
 | `npm run docs:sync` (docs → site) | ✅ Built |
 | Build the Go binary | 📐 Designed |
 | Build the frontend | 📐 Designed |
-| `propfix` (run a node) | 📐 Designed |
-| `propfix --demo` | 📐 Designed |
+| `pango` (run a node) | 📐 Designed |
+| `pango --demo` | 📐 Designed |
 | Create a building and a unit | 📐 Designed |
 | Raise, cost and close a job | 📐 Designed |
 | Run an inspection | 📐 Designed |
@@ -42,8 +42,8 @@ account.
 ## 1. Clone — ✅ Built
 
 ```bash
-git clone https://github.com/vul-os/propfix
-cd propfix
+git clone https://github.com/vul-os/pango
+cd pango
 ```
 
 What you will find today: [`docs/ARCHITECTURE.md`](ARCHITECTURE.md) (the binding
@@ -67,13 +67,13 @@ by the product standard).
 Backend-only, once `backend/` has code:
 
 ```bash
-go build ./backend/cmd/propfix
+go build ./backend/cmd/pango
 ```
 
 ## 3. Run a node — 📐 Designed
 
 ```bash
-./propfix
+./pango
 ```
 
 Intended defaults, all of which are part of the design contract rather than
@@ -81,14 +81,14 @@ observed behaviour:
 
 | | Default |
 |---|---|
-| Listen address | `127.0.0.1:8080` — loopback unless you opt out |
-| Database | `./propfix.db`, created mode `0600` |
+| Listen address | `127.0.0.1:8099` — loopback unless you opt out |
+| Database | `./pango.db`, created mode `0600` |
 | Attachments | `./attachments/`, content-addressed |
 | Outbound network calls | **none** |
 | Accounts required | none |
 
 A fresh install talks to nothing. There is no telemetry, no update check, no
-licence call, and no registration. If PropFix ever makes a network request you
+licence call, and no registration. If Pango ever makes a network request you
 did not configure, that is a bug — please report it.
 
 See [CONFIGURATION.md](CONFIGURATION.md) for every flag and environment
@@ -97,7 +97,7 @@ variable, each marked with its own status.
 ## 4. Demo mode — 📐 Designed
 
 ```bash
-./propfix --demo
+./pango --demo
 ```
 
 Intended to seed an in-memory dataset — a handful of buildings, units, jobs,
@@ -156,8 +156,8 @@ stick between them). The full protocol, including the threat table, is in
 ## 8. Send work outside your organisation — 📐 Designed
 
 In-house maintenance never touches WRAP. When work leaves the organisation,
-PropFix speaks [WRAP](https://github.com/vul-os/wrap) `trades/v0`, so a plumbing
-company running **its own** PropFix node receives work orders directly from a
+Pango speaks [WRAP](https://github.com/vul-os/wrap) `trades/v0`, so a plumbing
+company running **its own** Pango node receives work orders directly from a
 managing agent's node — no platform between the landlord and the plumber, and
 nobody taking a cut. See [WRAP.md](WRAP.md).
 

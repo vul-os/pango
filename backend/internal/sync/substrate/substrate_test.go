@@ -1,10 +1,10 @@
 package substrate_test
 
-// Does PropFix hand the shared engine the right ops?
+// Does Pango hand the shared engine the right ops?
 //
 // vectors_test.go proves the engine computes the algebra correctly. That is a
 // different claim from this one and neither implies the other: an engine that
-// passes every frozen vector will still converge on the wrong answer if PropFix
+// passes every frozen vector will still converge on the wrong answer if Pango
 // addresses two distinct facts as one element, or classifies an append-only
 // table as a register. These tests are about the mapping.
 
@@ -18,9 +18,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/store"
-	propsync "github.com/vul-os/propfix/backend/internal/sync"
-	"github.com/vul-os/propfix/backend/internal/sync/substrate"
+	"github.com/vul-os/pango/backend/internal/store"
+	propsync "github.com/vul-os/pango/backend/internal/sync"
+	"github.com/vul-os/pango/backend/internal/sync/substrate"
 )
 
 // Two author keys that are real 32-byte Ed25519 public keys as far as the stamp
@@ -34,7 +34,7 @@ const (
 // testOrg is the organisation every op in this file belongs to.
 const testOrg = "01ORGAAAAAAAAAAAAAAAAAAAAA"
 
-// opAt builds an unsigned PropFix op with an explicit stamp.
+// opAt builds an unsigned Pango op with an explicit stamp.
 //
 // It does not go through store.Journal, deliberately: Journal mints from the real
 // wall clock, and a test whose stamps move with the calendar cannot say anything
@@ -76,7 +76,7 @@ func mintedOp(t *testing.T, s *store.Store, e *substrate.Engine, tbl, rowID stri
 // ── §4.3: element identity ──────────────────────────────────────────────────
 
 // THE MONEY TEST. §4.3 identifies a set element by its VALUE, so two adds
-// carrying identical bytes are ONE element with two add-tags. PropFix reads a
+// carrying identical bytes are ONE element with two add-tags. Pango reads a
 // job's cost as SUM(amount_minor) over its entries (docs/SYNC.md §4), so two
 // entries that collapsed into one read as half the money — converged, on every
 // replica, with no error anywhere.
@@ -90,7 +90,7 @@ func TestTwoIdenticalCostEntriesDoNotCollapse(t *testing.T) {
 	_, b := openAt(t, &now)
 
 	// Byte-identical bodies. Even the embedded "id" matches, which is stronger
-	// than reality needs — PropFix mints a fresh ULID per row — precisely so
+	// than reality needs — Pango mints a fresh ULID per row — precisely so
 	// this test does not lean on the payload happening to differ.
 	const body = `{"job_id":"01JOBAAAAAAAAAAAAAAAAAAAAA","amount_minor":120000,` +
 		`"currency":"ZAR","kind":"materials","description":"paint"}`
@@ -188,7 +188,7 @@ func TestElementIdentityIsOpIdentityNotPayloadIdentity(t *testing.T) {
 // identity, and the engine addresses an op by a 33-byte content address, so a
 // replay is the same content and therefore the same element.
 //
-// This is the property PropFix's oplog primary key already has (it is keyed on
+// This is the property Pango's oplog primary key already has (it is keyed on
 // the stamp), and the two have to agree or one node's row count and the engine's
 // element count drift apart.
 func TestReplayingAnOpAddsNoElement(t *testing.T) {
@@ -216,7 +216,7 @@ func TestReplayingAnOpAddsNoElement(t *testing.T) {
 
 // ── §4.4: registers ─────────────────────────────────────────────────────────
 
-// Both engines must pick the same winner. PropFix's built-in engine upserts only
+// Both engines must pick the same winner. Pango's built-in engine upserts only
 // when `excluded.hlc > tbl.hlc`; the shared engine orders by (wall, counter,
 // author). The suite learned the hard way that two engines can both converge and
 // still disagree about who won — and a replica set cannot survive that.
@@ -254,7 +254,7 @@ func TestRegisterWinnerIsTheGreaterStamp(t *testing.T) {
 }
 
 // An exact (wall, counter) tie breaks on the author public key, in both engines.
-// PropFix's node id IS its public key, which is the precondition docs/SYNC.md §10
+// Pango's node id IS its public key, which is the precondition docs/SYNC.md §10
 // names for the swap being safe; this asserts the precondition rather than
 // trusting it.
 func TestRegisterTieBreaksOnTheAuthorKey(t *testing.T) {
@@ -263,15 +263,15 @@ func TestRegisterTieBreaksOnTheAuthorKey(t *testing.T) {
 	fromB := opAt(testAuthorB, frozen, 4, "unit", row, `{"id":"`+row+`","label":"B"}`, false)
 
 	// These are peers' ops, so they cannot be signed here. Ingest is the signed
-	// path by design; the ordering claim is about the stamps, and PropFix's own
+	// path by design; the ordering claim is about the stamps, and Pango's own
 	// stamp comparison is a string compare, so assert it directly on the two
 	// stamps the engine would compare.
 	if !(fromA.HLC < fromB.HLC) {
-		t.Fatalf("PropFix orders %s after %s; the tie-break is meant to be the author key "+
+		t.Fatalf("Pango orders %s after %s; the tie-break is meant to be the author key "+
 			"ascending, and B's key sorts after A's", fromA.HLC, fromB.HLC)
 	}
 	// And the engine agrees, via the mapping's own round trip: the author it
-	// reads out of a stamp is the same 32 bytes PropFix put in.
+	// reads out of a stamp is the same 32 bytes Pango put in.
 	for _, op := range []store.Op{fromA, fromB} {
 		_, _, author, ok := store.ParseHLC(op.HLC)
 		if !ok || author != op.Author {
@@ -325,7 +325,7 @@ func TestSoftDeleteIsNotADeathCertificate(t *testing.T) {
 // Two replicas given the same ops in opposite orders must hold byte-identical
 // state. The §6.1 state root is what makes this a measurement rather than an
 // eyeball — it is also the answer to docs/SYNC.md §11's "verifying convergence"
-// open question, which PropFix had no way to answer before.
+// open question, which Pango had no way to answer before.
 func TestConvergenceIsOrderIndependent(t *testing.T) {
 	now := frozen
 	as, author := openAt(t, &now)
@@ -382,7 +382,7 @@ func TestConvergenceIsOrderIndependent(t *testing.T) {
 // ── failing closed ──────────────────────────────────────────────────────────
 
 // An envelope that does not agree with the op record it travelled with must be
-// refused. Otherwise the bytes the engine merges and the bytes PropFix writes to
+// refused. Otherwise the bytes the engine merges and the bytes Pango writes to
 // its tables are different writes — silent divergence on one node, which no
 // amount of syncing repairs.
 func TestEnvelopeThatDisagreesWithItsOpRecordIsRefused(t *testing.T) {
@@ -440,7 +440,7 @@ func TestEnvelopeThatDisagreesWithItsOpRecordIsRefused(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if err := b.Ingest(tc.op); err == nil {
 				t.Fatal("accepted: the engine merged bytes that differ from the op record " +
-					"PropFix will write to its tables")
+					"Pango will write to its tables")
 			}
 			after, err := b.StateRoot()
 			if err != nil {
@@ -504,7 +504,7 @@ func TestMintRefusesAnOpThisNodeDidNotAuthor(t *testing.T) {
 // A write journalled without one is a write the rest of the fleet cannot verify,
 // and store.Journal is meant to abort rather than produce one.
 func TestInstalledEngineMintsAnEnvelopeForEveryWrite(t *testing.T) {
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -554,7 +554,7 @@ func TestInstalledEngineMintsAnEnvelopeForEveryWrite(t *testing.T) {
 // An op the engine refuses must not reach the database. A row this node holds and
 // the engine does not is silent divergence, and nothing removes it afterwards.
 func TestApplyOpsDoesNotJournalWhatTheEngineRefuses(t *testing.T) {
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -611,7 +611,7 @@ func TestApplyOpsDoesNotJournalWhatTheEngineRefuses(t *testing.T) {
 // fleet as a transport failure, and docs/SYNC.md §10 wants the mixed state
 // visible instead.
 func TestLegacyOpsAreCountedNotRefused(t *testing.T) {
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}

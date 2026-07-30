@@ -1,4 +1,4 @@
-// Package domain holds PropFix's entities and the invariants that make them
+// Package domain holds Pango's entities and the invariants that make them
 // meaningful. It imports no SQL driver, no HTTP package and nothing from
 // repo/, api/ or store/ (§9): dependencies point inward.
 //

@@ -1,4 +1,4 @@
-// Package sync implements PropFix's leaderless, peer-to-peer replication
+// Package sync implements Pango's leaderless, peer-to-peer replication
 // (ARCHITECTURE.md §7, docs/SYNC.md). There is no central server: every node
 // serves sync requests over its own HTTP port and can dial peers. A round is
 // stateless and symmetric — push what the peer lacks, then pull what we
@@ -7,7 +7,7 @@
 // because ops are self-ordering and idempotent to apply.
 //
 // Every sync request is authenticated by a mutual Ed25519 signature over a
-// canonical request envelope (transport_auth.go). PropFix has no node
+// canonical request envelope (transport_auth.go). Pango has no node
 // identifier separate from its identity key — ARCHITECTURE.md §7 is explicit
 // that "a node's id is its public key" — so the transport identifies a peer
 // by the same key that signs its requests and mints its ops, rather than by a
@@ -25,7 +25,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 // Batch bounds how many ops travel per request and per push/pull round leg
@@ -102,7 +102,7 @@ func (e *Engine) Handler() http.Handler {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("GET /api/sync/ping", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "propfix")
+		io.WriteString(w, "pango")
 	})
 	mux.HandleFunc("GET /api/sync/vector", e.guard(e.handleVector))
 	mux.HandleFunc("POST /api/sync/ops", e.guard(e.handleOps))

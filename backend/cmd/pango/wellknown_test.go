@@ -11,9 +11,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/api"
-	"github.com/vul-os/propfix/backend/internal/repo"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/api"
+	"github.com/vul-os/pango/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 func TestWellKnownNotFoundWhenWrapDisabled(t *testing.T) {

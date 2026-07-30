@@ -3,7 +3,7 @@ package sync
 import (
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 // TestFolderReconverge proves the sneakernet path: two nodes that never open

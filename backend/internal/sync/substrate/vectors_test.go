@@ -1,12 +1,12 @@
 package substrate
 
 // vectors_test.go — SYNC.md §10's frozen conformance vectors, driven through the
-// engine PropFix actually links.
+// engine Pango actually links.
 //
 // # Why this file exists
 //
 // go.sum proves the engine module is the module it says it is. It proves nothing
-// about whether that module's ENGINE computes the algebra PropFix's merge
+// about whether that module's ENGINE computes the algebra Pango's merge
 // semantics now rest on. This file closes that gap: every one of the 24 vectors
 // frozen in the kotva repo at conformance/vectors/sync_vectors.json is driven
 // through this binding and compared against the values the specification froze —
@@ -20,11 +20,11 @@ package substrate
 // is a claim about behaviour, and the only evidence for it that is not a reading
 // of source is this test passing.
 //
-// # Why PropFix carries its own driver
+// # Why Pango carries its own driver
 //
 // The obvious alternative — running the binding module's own vectors_test.go in
 // CI — cannot work from a proxy fetch: that suite also needs a native Rust trace
-// under crates/, which is not in the module zip. So PropFix drives the vectors
+// under crates/, which is not in the module zip. So Pango drives the vectors
 // itself, against the vectors FILE rather than against a copy of it, so a vector
 // that changes upstream changes here on the next checkout instead of drifting
 // silently.
@@ -34,7 +34,7 @@ package substrate
 // The vectors file is not in this repo, so this test needs a kotva checkout —
 // KOTVA_DIR, which CI sets from a checkout at the tag matching the engine version
 // in go.mod. Without it the test SKIPS, and the skip names how many vectors went
-// unverified and how to fix it. With PROPFIX_REQUIRE_SYNC_VECTORS=1 the skip
+// unverified and how to fix it. With PANGO_REQUIRE_SYNC_VECTORS=1 the skip
 // becomes a failure, which is how CI runs it: a guard that has quietly stopped
 // running looks exactly like one that passes.
 //
@@ -105,7 +105,7 @@ func TestFrozenSyncVectors(t *testing.T) {
 	if !ok {
 		// The two branches differ in more than severity, so they say different
 		// things. Telling a reader who has already set
-		// PROPFIX_REQUIRE_SYNC_VECTORS=1 to go and set it is how a fail-closed
+		// PANGO_REQUIRE_SYNC_VECTORS=1 to go and set it is how a fail-closed
 		// message trains people to ignore it.
 		msg := fmt.Sprintf(
 			"KOTVA_DIR is unset or holds no conformance/vectors/sync_vectors.json: "+
@@ -117,10 +117,10 @@ func TestFrozenSyncVectors(t *testing.T) {
 				"be verifying against a different frozen suite than the one linked in. "+
 				"`make sync-conformance KOTVA_DIR=...` does this and refuses to pass without it.",
 			wantVectors)
-		if os.Getenv("PROPFIX_REQUIRE_SYNC_VECTORS") == "1" {
-			t.Fatal(msg + " PROPFIX_REQUIRE_SYNC_VECTORS=1 is set, so this absence is a failure.")
+		if os.Getenv("PANGO_REQUIRE_SYNC_VECTORS") == "1" {
+			t.Fatal(msg + " PANGO_REQUIRE_SYNC_VECTORS=1 is set, so this absence is a failure.")
 		}
-		t.Skip(msg + " Set PROPFIX_REQUIRE_SYNC_VECTORS=1 to make this absence a failure" +
+		t.Skip(msg + " Set PANGO_REQUIRE_SYNC_VECTORS=1 to make this absence a failure" +
 			" instead of a skip; CI does.")
 	}
 

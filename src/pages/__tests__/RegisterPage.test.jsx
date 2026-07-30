@@ -44,7 +44,7 @@ describe('RegisterPage', () => {
 
     await user.type(await screen.findByLabelText(/organisation/i), 'Meridian Property Management')
     await user.type(screen.getByLabelText(/your name/i), 'Jordan Naidoo')
-    await user.type(screen.getByLabelText(/^email$/i), 'jordan@propfix.local')
+    await user.type(screen.getByLabelText(/^email$/i), 'jordan@pango.local')
     await user.type(screen.getByLabelText(/^password$/i), 'a-strong-password')
     await user.click(screen.getByRole('button', { name: /create organisation/i }))
 
@@ -61,7 +61,7 @@ describe('RegisterPage', () => {
 
     await user.type(await screen.findByLabelText(/organisation/i), 'X')
     await user.type(screen.getByLabelText(/your name/i), 'Jordan')
-    await user.type(screen.getByLabelText(/^email$/i), 'jordan@propfix.local')
+    await user.type(screen.getByLabelText(/^email$/i), 'jordan@pango.local')
     await user.type(screen.getByLabelText(/^password$/i), 'a-strong-password')
     await user.click(screen.getByRole('button', { name: /create organisation/i }))
 

@@ -23,7 +23,7 @@ var siteFS embed.FS
 func newSiteHandler() http.Handler {
 	sub, err := fs.Sub(siteFS, "site")
 	if err != nil {
-		log.Printf("propfix: embedded site not found: %v", err)
+		log.Printf("pango: embedded site not found: %v", err)
 		return nil
 	}
 	return http.FileServer(http.FS(sub))

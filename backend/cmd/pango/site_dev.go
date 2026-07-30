@@ -25,7 +25,7 @@ func newSiteHandler() http.Handler {
 }
 
 // findSite walks up from the working directory looking for a site/ directory,
-// so the server runs the same from backend/, backend/cmd/propfix/ or the repo
+// so the server runs the same from backend/, backend/cmd/pango/ or the repo
 // root.
 func findSite() string {
 	dir, err := os.Getwd()

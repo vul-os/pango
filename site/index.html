@@ -3,337 +3,605 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>PropFix — Building maintenance and inspections you actually own.</title>
-<meta name="description" content="Self-hosted building maintenance and inspection software. One static binary, one SQLite file. Offline-first, peer-to-peer, no cloud account. Currently being rebuilt — not usable software yet.">
+<title>Pango — maintenance and inspections for people who look after property</title>
+<meta name="description" content="Raise a job against a unit, cost it, close it — and settle move-out damage with an ingoing/outgoing inspection comparison instead of an argument. Runs on your own laptop or server. No cloud account, no subscription.">
 <link rel="icon" href="./assets/brand/favicon.svg">
-<style>*,*::before,*::after{box-sizing:border-box}
-:root{
-  --bg:#0A0A0B; --bg-soft:#0F0F11; --panel:#141416; --panel-2:#1A1A1D;
-  --border:rgba(255,255,255,.08); --border-2:rgba(255,255,255,.13);
-  --text:#FAFAFA; --muted:#A1A1AA; --faint:#71717A;
-  --code-bg:#0C0C0E; --code-text:#D4D4D8; --chip:rgba(255,255,255,.06);
-  --radius:16px; --max:1120px;
-  --mono:ui-monospace,SFMono-Regular,"SF Mono","Geist Mono",Menlo,Consolas,monospace;
-  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+<link rel="stylesheet" href="./assets/theme.css">
+<style>
+/* ── Page-specific composition ───────────────────────────────────────────── */
+
+/* Hero: text column with the product shot bleeding off the right edge on wide
+   screens. Asymmetric on purpose — a centred hero is the default everyone
+   reaches for, and this product is not a default. */
+.hero { padding: clamp(40px, 5vw, 68px) 0 0; position: relative; }
+.hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.02fr); gap: 60px; align-items: center; }
+@media (max-width: 1000px) { .hero-grid { grid-template-columns: 1fr; gap: 44px; } }
+
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--accent-ink);
+  background: var(--accent-tint);
+  border: 1px solid var(--accent-line);
+  padding: 7px 14px; border-radius: 999px;
 }
-@media(prefers-color-scheme:light){
-  :root{
-    --bg:#FBFAF9; --bg-soft:#F4F2F0; --panel:#FFFFFF; --panel-2:#F7F5F3;
-    --border:rgba(24,20,16,.10); --border-2:rgba(24,20,16,.16);
-    --text:#18140F; --muted:#5C574F; --faint:#8A847A;
-    --code-bg:#17151A; --code-text:#E4E4E7; --chip:rgba(24,20,16,.05);
-    --tag-fg:#8A4B0B;
-  }
+.hero .display { margin-top: 26px; }
+.cta-row { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.trust {
+  display: flex; flex-wrap: wrap; gap: 8px 20px;
+  margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--rule);
+  font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--ink-3);
 }
-html{scroll-behavior:smooth}
-body{margin:0;font-family:var(--sans);background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased;font-size:16px}
-body::before{content:"";position:fixed;inset:0;z-index:-1;background:
-  radial-gradient(1100px 600px at 82% -10%, color-mix(in srgb,var(--accent) 12%, transparent), transparent 60%),
-  radial-gradient(900px 500px at -10% 8%, color-mix(in srgb,var(--accent-2) 9%, transparent), transparent 55%),
-  var(--bg);}
-a{color:inherit;text-decoration:none}
-img,svg{max-width:100%}
-.wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
-.accent{color:var(--accent)}
+.trust span { display: inline-flex; align-items: center; gap: 8px; }
+.trust span::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); }
 
-/* Header */
-.site-header{position:sticky;top:0;z-index:50;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--bg) 74%, transparent);border-bottom:1px solid var(--border)}
-.nav{display:flex;align-items:center;gap:18px;height:64px}
-.brand{display:flex;align-items:center;gap:11px;font-weight:700;font-size:18px;letter-spacing:-.03em}
-.brand .tile{width:34px;height:34px;border-radius:9px;overflow:hidden;flex:none;box-shadow:0 1px 0 rgba(255,255,255,.10) inset, 0 4px 14px rgba(0,0,0,.28)}
-.brand .tile img{width:100%;height:100%;object-fit:contain;display:block}
-.brand .fix{color:var(--accent)}
-.nav-spacer{flex:1}
-.nav-links{display:flex;align-items:center;gap:22px}
-.nav-links a{color:var(--muted);font-size:14.5px;font-weight:500;transition:color .15s}
-.nav-links a:hover{color:var(--text)}
-.vulos-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border:1px solid var(--border-2);border-radius:999px;font-size:13px;color:var(--muted);transition:border-color .15s,color .15s}
-.vulos-badge:hover{border-color:var(--accent);color:var(--text)}
-.vulos-badge img{width:16px;height:16px;border-radius:4px;display:block}
-@media(max-width:820px){.nav-links{display:none}}
+.hero-shot { position: relative; }
+.hero-shot .shot { transform: perspective(1600px) rotateY(-4deg) rotateX(1.5deg); }
+@media (max-width: 1000px) { .hero-shot .shot { transform: none; } }
 
-/* Buttons */
-.btn{display:inline-flex;align-items:center;gap:9px;padding:12px 20px;border-radius:11px;font-weight:600;font-size:15px;border:1px solid transparent;cursor:pointer;transition:transform .12s,box-shadow .2s,background .2s,border-color .2s}
-.btn:hover{transform:translateY(-1px)}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));color:#1A0E04;box-shadow:0 8px 26px -8px color-mix(in srgb,var(--accent) 60%, transparent)}
-.btn-primary:hover{box-shadow:0 12px 34px -8px color-mix(in srgb,var(--accent) 75%, transparent)}
-.btn-ghost{background:var(--panel);border-color:var(--border-2);color:var(--text)}
-.btn-ghost:hover{border-color:var(--accent)}
+/* ── Steps ───────────────────────────────────────────────────────────────── */
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+@media (max-width: 900px) { .steps { grid-template-columns: 1fr; } }
+.step { display: flex; flex-direction: column; gap: 18px; }
+.step .art {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); padding: 22px; box-shadow: var(--shadow-1);
+  transition: border-color .22s, transform .22s cubic-bezier(.2,.8,.3,1);
+}
+.step:hover .art { border-color: var(--accent-line); transform: translateY(-3px); }
+.step h3 { font-size: 22px; margin: 0 0 8px; }
+.step h3 .n {
+  font-family: var(--mono); font-size: 12px; color: var(--accent-ink);
+  letter-spacing: .1em; display: block; margin-bottom: 8px; font-weight: 500;
+}
+.step p { margin: 0; color: var(--ink-2); font-size: 16px; }
 
-/* Status banner */
-.status{border:1px solid color-mix(in srgb,var(--warn) 42%, transparent);background:color-mix(in srgb,var(--warn) 11%, transparent);border-radius:var(--radius);padding:20px 22px;margin:26px 0 0}
-.status b{color:var(--text);display:block;font-size:16px;margin-bottom:5px}
-.status b::before{content:"⚠ ";color:var(--warn)}
-.status p{margin:0;color:var(--muted);font-size:14.5px;max-width:760px}
-.status a{color:var(--text);text-decoration:underline;text-underline-offset:3px}
+/* ── Feature rows: illustration beside prose, alternating ────────────────── */
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(30px, 5vw, 72px); align-items: center; }
+@media (max-width: 940px) { .row { grid-template-columns: 1fr; gap: 34px; } }
+.row + .row { margin-top: clamp(56px, 7vw, 96px); }
+.row.flip .art-col { order: 2; }
+@media (max-width: 940px) { .row.flip .art-col { order: 0; } }
+.row h3 { font-size: clamp(25px, 3.2vw, 34px); margin: 14px 0 0; line-height: 1.15; }
+.row p { color: var(--ink-2); margin: 18px 0 0; font-size: 17px; }
+.row .art-col {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); padding: clamp(22px, 3vw, 38px);
+  box-shadow: var(--shadow-1);
+}
 
-/* Hero */
-.hero{padding:76px 0 46px}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;letter-spacing:.02em;color:var(--accent);background:color-mix(in srgb,var(--accent) 11%, transparent);border:1px solid color-mix(in srgb,var(--accent) 30%, transparent);padding:6px 13px;border-radius:999px}
-.hero h1{margin:24px 0 0;font-size:clamp(38px,6.4vw,66px);line-height:1.03;letter-spacing:-.045em;font-weight:800}
-.hero .tagline{font-size:clamp(18px,2.4vw,23px);color:var(--text);margin:20px 0 0;max-width:740px;font-weight:500}
-.hero .blurb{font-size:16.5px;color:var(--muted);margin:18px 0 0;max-width:680px}
-.cta-row{display:flex;flex-wrap:wrap;gap:13px;margin-top:30px}
+.keyline { margin: 22px 0 0; padding-left: 20px; border-left: 2px solid var(--accent); }
+.keyline p { margin: 0; font-size: 16.5px; color: var(--ink); font-style: italic; }
 
-/* Sections */
-.section{padding:60px 0}
-.section h2{font-size:clamp(26px,4vw,36px);letter-spacing:-.03em;margin:0 0 8px;font-weight:800}
-.section .lead{color:var(--muted);margin:0 0 34px;font-size:17px;max-width:680px}
+/* ── Gallery ─────────────────────────────────────────────────────────────── */
+.gallery { display: grid; grid-template-columns: repeat(2, 1fr); gap: 32px; }
+@media (max-width: 860px) { .gallery { grid-template-columns: 1fr; } }
 
-/* Problem */
-.problem{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:820px){.problem{grid-template-columns:1fr}}
-.pcard{background:linear-gradient(180deg,var(--panel),var(--bg-soft));border:1px solid var(--border);border-radius:var(--radius);padding:26px}
-.pcard h3{margin:0 0 10px;font-size:18px;letter-spacing:-.015em}
-.pcard h3::before{content:"/ ";color:var(--accent);font-weight:800}
-.pcard p{margin:0 0 12px;color:var(--muted);font-size:15px}
-.pcard p:last-child{margin-bottom:0}
-.pcard code{font-family:var(--mono);font-size:.86em;background:var(--chip);padding:1px 5px;border-radius:5px;color:var(--text)}
+/* ── Own-it band ─────────────────────────────────────────────────────────── */
+.band {
+  background: var(--card); border: 1px solid var(--rule);
+  border-radius: var(--r-lg); padding: clamp(30px, 4.5vw, 56px);
+  box-shadow: var(--shadow-1);
+}
+.band-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-top: 34px; }
+@media (max-width: 860px) { .band-grid { grid-template-columns: 1fr; } }
+.band-grid h4 { font-size: 18px; margin: 0 0 8px; }
+.band-grid h4::before { content: "→ "; color: var(--accent); }
+.band-grid p { margin: 0; color: var(--ink-2); font-size: 15.5px; }
 
-/* Features */
-.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-@media(max-width:900px){.grid{grid-template-columns:1fr 1fr}}
-@media(max-width:620px){.grid{grid-template-columns:1fr}}
-.card{background:linear-gradient(180deg,var(--panel),var(--bg-soft));border:1px solid var(--border);border-radius:var(--radius);padding:24px;transition:border-color .2s,transform .2s}
-.card:hover{border-color:color-mix(in srgb,var(--accent) 45%, var(--border));transform:translateY(-2px)}
-.card .dot{width:34px;height:34px;border-radius:9px;background:color-mix(in srgb,var(--accent) 13%, transparent);border:1px solid color-mix(in srgb,var(--accent) 32%, transparent);display:grid;place-items:center;margin-bottom:15px}
-.card .dot::after{content:"";width:11px;height:11px;border-radius:3px;background:var(--accent)}
-.card h3{margin:0 0 8px;font-size:17.5px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.card p{margin:0;color:var(--muted);font-size:14.5px}
-.card code{font-family:var(--mono);font-size:.86em;background:var(--chip);padding:1px 5px;border-radius:5px;color:var(--text)}
-.tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--warn) 38%, transparent);color:var(--tag-fg,var(--warn));background:color-mix(in srgb,var(--warn) 10%, transparent);white-space:nowrap}
-
-/* Diagram */
-.diagram{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:26px;overflow:auto;text-align:center}
-.two-up{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:22px}
-@media(max-width:820px){.two-up{grid-template-columns:1fr}}
-.rule{background:linear-gradient(180deg,var(--panel),var(--bg-soft));border:1px solid var(--border);border-radius:var(--radius);padding:24px}
-.rule h4{margin:0 0 8px;font-size:16.5px}
-.rule h4::before{content:"→ ";color:var(--accent)}
-.rule p{margin:0;color:var(--muted);font-size:14.5px}
-
-/* Selfhost band */
-.band{background:linear-gradient(120deg,var(--panel),var(--bg-soft));border:1px solid var(--border);border-radius:var(--radius);padding:40px}
-.band h2{margin-top:0}
-.band .cols{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:26px}
-@media(max-width:820px){.band .cols{grid-template-columns:1fr}}
-.band h4{margin:0 0 6px;font-size:16px;letter-spacing:-.01em}
-.band h4::before{content:"/ ";color:var(--accent);font-weight:700}
-.band p{margin:0;color:var(--muted);font-size:14.5px}
-.codeblock{background:var(--code-bg);border:1px solid var(--border-2);border-radius:var(--radius);overflow:hidden;margin-top:26px}
-.codeblock .bar{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
-.codeblock .bar i{width:11px;height:11px;border-radius:50%;background:#2A2A31;display:inline-block}
-.codeblock .bar span{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:#8A8A94}
-.codeblock pre{margin:0;padding:18px 20px;overflow:auto;font-family:var(--mono);font-size:13.5px;line-height:1.75;color:var(--code-text)}
-.codeblock .c{color:#7E7E88}
-
-/* Vulos band */
-.vulos-band{margin:24px 0;background:linear-gradient(120deg,var(--panel),var(--bg-soft));border:1px solid var(--border);border-radius:var(--radius);padding:40px;display:flex;gap:26px;align-items:flex-start}
-@media(max-width:680px){.vulos-band{flex-direction:column}}
-.vulos-band>img{width:60px;height:60px;border-radius:14px;flex:none;display:block}
-.vulos-band h3{margin:0 0 8px;font-size:21px}
-.vulos-band p{margin:0 0 12px;color:var(--muted);max-width:760px;font-size:15px}
-.vulos-band ul{margin:0 0 12px;padding-left:20px;color:var(--muted);font-size:14.5px}
-.vulos-band li{margin:3px 0}
-.vulos-band .more{display:inline-flex;color:var(--accent);font-weight:600;font-size:15px}
-
-/* Footer */
-.site-footer{border-top:1px solid var(--border);margin-top:40px;padding:40px 0}
-.foot{display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
-.foot .left{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:14px}
-.foot .left img{width:20px;height:20px;border-radius:5px;display:block}
-.foot .links{display:flex;gap:20px;flex-wrap:wrap}
-.foot .links a{color:var(--muted);font-size:14px}
-.foot .links a:hover{color:var(--text)}
-.foot-note{color:var(--faint);font-size:13px;margin-top:22px;max-width:760px}
+/* ── Vulos ───────────────────────────────────────────────────────────────── */
+.vulos { display: flex; gap: 28px; align-items: flex-start; }
+@media (max-width: 700px) { .vulos { flex-direction: column; } }
+.vulos > img { width: 56px; height: 56px; border-radius: 14px; flex: none; display: block; }
+.vulos h3 { margin: 0 0 10px; font-size: 24px; }
+.vulos p { color: var(--ink-2); margin: 0 0 14px; font-size: 16px; max-width: 74ch; }
+.vulos ul { margin: 0 0 14px; padding-left: 20px; color: var(--ink-2); font-size: 15.5px; }
+.vulos li { margin: 4px 0; }
+.vulos li b { color: var(--ink); }
 </style>
-<style>:root{--accent:#FF7A29;--accent-2:#E0530A;--warn:#F5A524}</style>
-<script src="./assets/vendor/mermaid.min.js"></script>
 </head>
 <body>
+
 <header class="site-header"><div class="wrap nav">
-    <a class="brand" href="./index.html"><span class="tile"><img src="./assets/brand/logo-mark.svg" alt="PropFix mark"></span>Prop<span class="fix">Fix</span></a>
-    <div class="nav-spacer"></div>
-    <nav class="nav-links">
-      <a href="./index.html#problem">The problem</a>
-      <a href="./index.html#features">Features</a>
-      <a href="./index.html#how">How it works</a>
-      <a href="./index.html#selfhost">Self-hosting</a>
-      <a href="./docs.html">Docs</a>
-      <a href="https://github.com/vul-os/propfix" target="_blank" rel="noopener">GitHub</a>
-    </nav>
-    <a class="vulos-badge" href="https://vulos.org" target="_blank" rel="noopener" title="Part of VulOS">
-      <img src="./assets/vulos-logo.png" alt="VulOS">Part of VulOS
-    </a>
-  </div></header>
+  <a class="brand" href="./index.html">
+    <span class="tile"><img src="./assets/brand/logo-mark.svg" alt=""></span>
+    <span>Pan<span class="go">go</span></span>
+  </a>
+  <div class="nav-spacer"></div>
+  <nav class="nav-links">
+    <a href="#work">What you do with it</a>
+    <a href="#compare">Inspections</a>
+    <a href="#offline">Offline</a>
+    <a href="#own">Self-hosting</a>
+    <a href="./docs.html">Docs</a>
+    <a href="https://github.com/vul-os/pango" target="_blank" rel="noopener">GitHub</a>
+  </nav>
+  <a class="vulos-badge" href="https://vulos.org" target="_blank" rel="noopener" title="Part of VulOS">
+    <img src="./assets/vulos-logo.png" alt="">Part of VulOS
+  </a>
+</div></header>
+
 <main>
+
+  <!-- ══ Hero ══════════════════════════════════════════════════════════════ -->
   <section class="hero"><div class="wrap">
-    <span class="eyebrow">No cloud · No subscription · No account with us</span>
-    <h1>Building maintenance<br>and inspections<br>you actually own.</h1>
-    <p class="tagline">Jobs, costs, and templated condition inspections with ingoing/outgoing comparison — in one static binary and one SQLite file.</p>
-    <p class="blurb">Built for managing agents, landlords with a portfolio, body corporates and facilities teams. It is designed to work fully offline, to need no central server, and to let a contractor run their own node as a first-class participant rather than a login on somebody else's system.</p>
-
-    <div class="status">
-      <b>PropFix is being rebuilt from scratch. It is not usable software today.</b>
-      <p>There is no binary, no release, no container image and no user interface. A previous cloud-coupled implementation is being replaced rather than patched. What exists right now is the design contract and the documentation around it. Everything described on this page is <strong>designed, not built</strong> — each feature says so, and each will be corrected individually as code lands. Read the <a href="./docs.html#architecture">architecture</a> or the <a href="./docs.html#faq">FAQ</a>.</p>
-    </div>
-
-    <div class="cta-row">
-      <a class="btn btn-primary" href="./docs.html#architecture">Read the architecture</a>
-      <a class="btn btn-ghost" href="./docs.html">Browse the docs</a>
-      <a class="btn btn-ghost" href="https://github.com/vul-os/propfix" target="_blank" rel="noopener">View on GitHub</a>
-    </div>
-  </div></section>
-
-  <section class="section" id="problem"><div class="wrap">
-    <h2>The problem</h2>
-    <p class="lead">Two of them, and the second is why this product exists.</p>
-    <div class="problem">
-      <div class="pcard">
-        <h3>Maintenance software assumes you have signal</h3>
-        <p>A contractor is in a basement. A manager is walking a block with no coverage. The office line is down. Conventional systems put a server in the middle of every write, so in each of those moments the work stops or gets written on paper and typed in later — badly, or never.</p>
-        <p>PropFix is designed so that every surface accepts writes while partitioned and converges afterwards. Nothing blocks on the network, and no central server is required at any point: peers are enrolled by hand and sync directly. If neither side is reachable, a shared folder — or a <strong>USB stick</strong> — is a valid transport.</p>
-      </div>
-      <div class="pcard">
-        <h3>Move-out damage is argued, not evidenced</h3>
-        <p>The tenant says the counter was chipped when they moved in. The agent says it was not. Both are sincere, neither has evidence, and the deposit deduction gets decided by whoever is more insistent or can better afford to escalate.</p>
-        <p>PropFix's differentiator is <strong>ingoing/outgoing inspection comparison</strong>: the same template run twice, diffed item by item, with both sets of photos side by side. It does not decide who is right — and it explicitly distinguishes "deteriorated" from "<em>not captured ingoing</em>", so a missing baseline never gets laundered into a confident-looking claim.</p>
-      </div>
-    </div>
-    <div class="two-up">
-      <div class="rule">
-        <h4>And one inherited bug worth naming</h4>
-        <p>The legacy system stored units as free text on the job (<code>unitIdentifier</code>) with no table — while its analytics grouped by that text. "Flat 3A", "3A" and "flat 3a" silently became three different units, fragmenting the per-unit cost reporting that was the product's main analytical claim. Units are now real rows with a normalised key and the label as typed.</p>
-      </div>
-      <div class="rule">
-        <h4>And one inherited security flaw</h4>
-        <p>The legacy system trusted the frontend to send <code>organization_id</code> filters. That is not isolation — it is a suggestion enforced by the attacker. Scoping is now derived server-side from the authenticated identity and never taken from a client-supplied parameter.</p>
-      </div>
-    </div>
-  </div></section>
-
-  <section class="section" id="features"><div class="wrap">
-    <h2>What it will do</h2>
-    <p class="lead">Every card below is <strong>designed and specified, with no implementation yet</strong>. The tags are not decoration — nothing here works today, and each tag comes off individually when the code that earns it lands.</p>
-    <div class="grid">
-      <div class="card"><div class="dot"></div><h3>Maintenance jobs <span class="tag">Designed</span></h3><p>Raise a job against a unit, triage it, assign it, cost it, close it. Job numbers come from the <strong>building's</strong> own sequence, so they allocate offline with no coordination between nodes.</p></div>
-      <div class="card"><div class="dot"></div><h3>Units as real entities <span class="tag">Designed</span></h3><p>A normalised <code>key</code> plus the display <code>label</code> exactly as typed, created on first use, with the building's numbering scheme driving normalisation. Per-unit cost reporting stops fragmenting.</p></div>
-      <div class="card"><div class="dot"></div><h3>Templated inspections <span class="tag">Designed</span></h3><p>Reusable checklists by area and item, with per-item condition, comments, and photo requirements. Findings are append-only, so a correction adds an observation rather than overwriting one.</p></div>
-      <div class="card"><div class="dot"></div><h3>Ingoing/outgoing comparison <span class="tag">Designed</span></h3><p>The differentiator. Item-by-item deltas — unchanged, deteriorated, improved, <em>not captured ingoing</em>, not captured outgoing — with the evidence from both runs attached.</p></div>
-      <div class="card"><div class="dot"></div><h3>Append-only money &amp; hours <span class="tag">Designed</span></h3><p>Costs and times are immutable, insert-only rows. A job's cost is <code>SUM(amount_minor)</code> at read time, never a stored counter, so two people costing the same job offline <strong>add</strong> instead of one silently overwriting the other. Corrections are negative entries. Money is <code>int64</code> minor units — floats never touch it.</p></div>
-      <div class="card"><div class="dot"></div><h3>Peer-to-peer sync <span class="tag">Designed</span></h3><p>An HLC oplog with stateless, symmetric rounds and mutual Ed25519 authentication. Peers are enrolled by hand — no mDNS, no DHT, no rendezvous. Any node can relay any other node's operations.</p></div>
-      <div class="card"><div class="dot"></div><h3>Folder &amp; USB transport <span class="tag">Designed</span></h3><p>Each node appends only its own <code>ops-&lt;node&gt;.jsonl</code> to a shared folder, so no file ever has two writers and there is nothing to conflict. A NAS, a synced drive or a stick carried between sites all work, with no simultaneous connectivity.</p></div>
-      <div class="card"><div class="dot"></div><h3>Cross-org work over WRAP <span class="tag">Designed</span></h3><p>A plumbing company runs <strong>its own</strong> PropFix node and receives work orders over the open <a href="https://github.com/vul-os/wrap" target="_blank" rel="noopener" style="color:var(--text);text-decoration:underline">WRAP</a> <code>trades/v0</code> profile. No platform between the landlord and the plumber, and nobody taking a cut. Optional — in-house work never touches it.</p></div>
-      <div class="card"><div class="dot"></div><h3>Tenants without accounts <span class="tag">Designed</span></h3><p>A tenant is a participant, not an account: attached to a unit or job, seeing only events marked public. No key, no install, no signup to report a leak and be told it is fixed.</p></div>
-    </div>
-  </div></section>
-
-  <section class="section" id="how"><div class="wrap">
-    <h2>How it works</h2>
-    <p class="lead">The design. Not a description of running code — see the notice at the top of this page.</p>
-    <div class="diagram">
-      <pre class="mermaid">
-flowchart TD
-  subgraph node["one PropFix node — one binary, one SQLite file"]
-    ui["React frontend<br/>embedded in the binary"]
-    api["api/ — routes, JSON, auth"]
-    dom["domain/ — entities &amp; invariants"]
-    repo["repo/ — one file per aggregate"]
-    store[("store/ — SQLite<br/>migrations · HLC · oplog")]
-    ui --> api --> repo --> store
-    api --> dom
-    repo --> dom
-  end
-  peer["another PropFix node<br/>(a branch office, a contractor)"]
-  folder[["shared folder / NAS / USB<br/>ops-&lt;node&gt;.jsonl"]]
-  wrapnet["WRAP trades/v0<br/>cross-organisation work orders"]
-  store <--> |"HLC oplog · mutual Ed25519<br/>stateless symmetric rounds"| peer
-  store <--> |"append-only, one writer per file"| folder
-  api <-.-> |"optional — external contractors only"| wrapnet
-      </pre>
-    </div>
-    <div class="two-up">
-      <div class="rule">
-        <h4>The building is the authority</h4>
-        <p>Whoever manages a building is the single writer for its jobs, its job-number sequence, assignment, and inspection scheduling. Because the only contended decision — <em>who does the work</em> — has exactly one legitimate writer, there is no consensus protocol, no leader election and no distributed lock anywhere in the system.</p>
-      </div>
-      <div class="rule">
-        <h4>Money and hours are append-only</h4>
-        <p>If two people record spend on the same job while partitioned, union merge means the amounts add. A stored <code>cost</code> column would keep whichever write landed last and silently lose the other — with no error, and no way to notice until the numbers were wrong at month end.</p>
-      </div>
-    </div>
-  </div></section>
-
-  <section class="section" id="selfhost"><div class="wrap">
-    <div class="band">
-      <h2>Self-hosting is the only mode</h2>
-      <p class="lead" style="margin-bottom:0">There is no hosted PropFix, no free tier, no seat count, and no account with us — because there is nothing to sell you. It is MIT-licensed software you run on hardware you already have.</p>
-      <div class="cols">
-        <div><h4>One binary, one file</h4><p>A Go binary with the frontend embedded, plus a SQLite file and a directory of content-addressed attachments. No database server, no cache, no queue, no object store. Pure Go via <code>modernc.org/sqlite</code>, so an arm64 build for a Pi is a plain cross-compile.</p></div>
-        <div><h4>It talks to nothing</h4><p>A fresh install is designed to make no outbound network calls at all: no telemetry, no update check, no licence call, no font CDN, and no map-tile provider — MapLibre with Protomaps needs no API key. Every destination is one you entered.</p></div>
-        <div><h4>Your data is a directory</h4><p>The database, the node's identity key and the attachments live in one folder you back up however you already back things up. PropFix ships no backup service. Note that sync signatures authenticate peers but <strong>do not encrypt</strong> — run it over a LAN, your own VPN, or TLS you terminate.</p></div>
-      </div>
-      <div class="codeblock">
-        <div class="bar"><i></i><i></i><i></i><span>none of this runs yet — planned surface</span></div>
-        <pre><span class="c"># planned — there is no binary to build or run today</span>
-git clone https://github.com/vul-os/propfix
-cd propfix
-npm install &amp;&amp; npm run build
-
-<span class="c"># one node, local SQLite, loopback only, no cloud</span>
-./propfix --data-dir /var/lib/propfix
-
-<span class="c"># seeded in-memory dataset — no database, no configuration</span>
-./propfix --demo</pre>
-      </div>
-      <p class="foot-note">The one command in this repository that does work today is <code>npm run docs:sync</code>, which copies <code>docs/*.md</code> into the site so the page you are reading can never drift from the repository's own documentation.</p>
-    </div>
-  </div></section>
-
-  <section class="section"><div class="wrap">
-    <div class="vulos-band">
-      <img src="./assets/vulos-logo.png" alt="VulOS logo">
+    <div class="hero-grid">
       <div>
-        <h3>Part of VulOS</h3>
-        <p><strong>Vulos publishes one thing: the OS.</strong> The <a href="https://vulos.org" target="_blank" rel="noopener" style="color:var(--text);font-weight:600">Vulos OS</a>, all its apps (PropFix included) and the app store are free and open-source, dual MIT OR Apache-2.0 — you self-host them. You self-provision and self-pay your own box; Vulos does not host or provision boxes, and does not bill for anything.</p>
-        <ul>
-          <li><strong>Vulos OS</strong> — the web-native desktop shell that hosts the apps</li>
-          <li><strong>diwan</strong> — docs, sheets, slides, PDF and whiteboards</li>
-          <li><strong>Vulos Files</strong> — file storage and P2P sharing, built into the OS</li>
-          <li><strong>Ephor</strong> — self-hostable reachability broker the box dials out to</li>
-          <li><strong>llmux</strong> — sovereign AI gateway</li>
-        </ul>
-        <p>PIM is bring-your-own (Mail / Calendar / Contacts via lilmail); chat and video are third-party (Matrix/Element, Element Call / Jitsi) — not Vulos products.</p>
-        <p><strong>PropFix's role:</strong> the property maintenance and inspections app. It is designed to run standalone <strong>and</strong> be hosted as an app by the Vulos OS — the same binary, with the OS wiring identity and scoped storage in front of it. Ephor, the control plane and DMTAP are optional seams; a hard runtime dependency on any of them is forbidden.</p>
-        <a class="more" href="https://vulos.org" target="_blank" rel="noopener">Explore VulOS →</a>
+        <span class="eyebrow">Maintenance &amp; inspections</span>
+        <h1 class="display">Know what happened in every unit — and be able to <em>prove it</em>.</h1>
+        <p class="lede">
+          Raise a job against a door, cost it as the work happens, close it. Then settle
+          move-out damage with an ingoing/outgoing comparison instead of an argument.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="#work">See how it works <span class="arrow">→</span></a>
+          <a class="btn btn-ghost" href="./docs.html#getting-started">Get started</a>
+        </div>
+        <div class="trust">
+          <span>Your laptop or your server</span>
+          <span>No subscription</span>
+          <span>No account with us</span>
+          <span>Open source</span>
+        </div>
+      </div>
+
+      <div class="hero-shot">
+        <div class="shot">
+          <div class="shot-bar"><i></i><i></i><i></i><span>pango — jobs</span></div>
+          <img src="./screenshots/jobs-board.png" alt="The Pango jobs board: maintenance work triaged across every building, filterable by unit, priority and assignee." width="1440" height="900">
+        </div>
       </div>
     </div>
   </div></section>
-</main>
-<footer class="site-footer"><div class="wrap">
-    <div class="foot">
-      <div class="left"><img src="./assets/vulos-logo.png" alt="VulOS"> <span>Part of <a href="https://vulos.org" target="_blank" rel="noopener" style="color:var(--text)">VulOS</a> — open, self-hostable apps. Standalone by design.</span></div>
-      <div class="links">
-        <a href="./docs.html">Docs</a>
-        <a href="./docs.html#architecture">Architecture</a>
-        <a href="./docs.html#faq">FAQ</a>
-        <a href="https://github.com/vul-os/propfix" target="_blank" rel="noopener">GitHub</a>
-        <a href="./LICENSE.txt">License</a>
-        <a href="https://vulos.org" target="_blank" rel="noopener">vulos.org</a>
+
+  <!-- ══ 01 · What you do with it ══════════════════════════════════════════ -->
+  <section class="section" id="work"><div class="wrap">
+    <div class="section-head reveal">
+      <span class="label">01 — The daily work</span>
+      <h2>Three things, done properly.</h2>
+      <p>Pango is built for managing agents, landlords with a portfolio, body corporates
+         and facilities teams. Not a ticketing system that happens to mention buildings.</p>
+    </div>
+
+    <div class="steps">
+
+      <div class="step reveal">
+        <div class="art">
+          <!-- Illustration: a job card raised against a specific door -->
+          <svg class="illus" viewBox="0 0 300 168" role="img" aria-label="A maintenance job raised against a specific unit">
+            <rect x="18" y="26" width="128" height="120" rx="8" class="fc st" stroke-width="1.5"/>
+            <line x1="18" y1="52" x2="146" y2="52" class="sf" stroke-width="1.2"/>
+            <text x="30" y="45" font-size="9">BUILDING</text>
+            <rect x="30" y="64" width="46" height="30" rx="3" class="fp sf" stroke-width="1.2"/>
+            <rect x="84" y="64" width="46" height="30" rx="3" class="fp sf" stroke-width="1.2"/>
+            <rect x="30" y="102" width="46" height="30" rx="3" class="ft ac" stroke-width="2"/>
+            <rect x="84" y="102" width="46" height="30" rx="3" class="fp sf" stroke-width="1.2"/>
+            <text x="38" y="121" font-size="9" style="fill:var(--accent-ink)">3A</text>
+            <path d="M150 117 H186" class="ac" stroke-width="2" stroke-dasharray="4 4"/>
+            <path d="M182 112 l6 5 -6 5" class="ac" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="192" y="82" width="94" height="70" rx="8" class="fc st" stroke-width="1.5"/>
+            <line x1="192" y1="104" x2="286" y2="104" class="sf" stroke-width="1.2"/>
+            <text x="202" y="98" font-size="9">JOB #4</text>
+            <rect x="202" y="115" width="60" height="5" rx="2.5" class="fa"/>
+            <rect x="202" y="127" width="74" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+            <rect x="202" y="137" width="46" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          </svg>
+        </div>
+        <div>
+          <h3><span class="n">01</span>Raise it against a door</h3>
+          <p>Every job belongs to a unit, not a free-text note. <code>Flat 3A</code>,
+             <code>3A</code> and <code>flat 3a</code> are one door — so your reporting
+             never quietly splits into three.</p>
+        </div>
+      </div>
+
+      <div class="step reveal" style="transition-delay:.08s">
+        <div class="art">
+          <!-- Illustration: an append-only ledger that adds up -->
+          <svg class="illus" viewBox="0 0 300 168" role="img" aria-label="An append-only cost ledger where entries add up and corrections are negative rows">
+            <rect x="34" y="20" width="232" height="128" rx="10" class="fc st" stroke-width="1.5"/>
+            <line x1="34" y1="46" x2="266" y2="46" class="sf" stroke-width="1.2"/>
+            <text x="48" y="39" font-size="9">COSTS</text>
+            <text x="222" y="39" font-size="9">AMOUNT</text>
+            <g class="sf" stroke-width="1">
+              <rect x="48" y="58" width="86" height="4" rx="2" class="fp"/>
+              <rect x="48" y="80" width="104" height="4" rx="2" class="fp"/>
+              <rect x="48" y="102" width="72" height="4" rx="2" class="fp"/>
+            </g>
+            <text x="214" y="63" font-size="10">1 240</text>
+            <text x="222" y="85" font-size="10">380</text>
+            <text x="206" y="107" font-size="10" style="fill:var(--accent-ink)">− 120</text>
+            <line x1="48" y1="118" x2="252" y2="118" class="ac" stroke-width="1.5"/>
+            <text x="48" y="136" font-size="10" style="fill:var(--ink-2)">TOTAL</text>
+            <text x="206" y="136" font-size="12" style="fill:var(--accent-ink)" font-weight="600">1 500</text>
+          </svg>
+        </div>
+        <div>
+          <h3><span class="n">02</span>Cost it as it happens</h3>
+          <p>Materials and hours are added, never edited. Two people costing the same
+             job on the same day <strong>add up</strong> instead of overwriting each
+             other, and a correction is a negative line everyone can see.</p>
+        </div>
+      </div>
+
+      <div class="step reveal" style="transition-delay:.16s">
+        <div class="art">
+          <!-- Illustration: a templated inspection walk -->
+          <svg class="illus" viewBox="0 0 300 168" role="img" aria-label="A templated inspection: rooms and items with a condition recorded against each">
+            <rect x="52" y="16" width="196" height="136" rx="10" class="fc st" stroke-width="1.5"/>
+            <text x="68" y="38" font-size="9">KITCHEN</text>
+            <g stroke-width="1.2">
+              <circle cx="74" cy="56" r="6" class="fc ac" stroke-width="2"/>
+              <path d="M71 56 l2.4 2.4 4.6 -5" class="ac" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="90" y="53" width="94" height="4" rx="2" class="fp sf"/>
+              <circle cx="74" cy="80" r="6" class="fc ac" stroke-width="2"/>
+              <path d="M71 80 l2.4 2.4 4.6 -5" class="ac" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <rect x="90" y="77" width="72" height="4" rx="2" class="fp sf"/>
+              <circle cx="74" cy="104" r="6" class="fc sf" stroke-width="1.5"/>
+              <rect x="90" y="101" width="86" height="4" rx="2" class="fp sf"/>
+            </g>
+            <rect x="196" y="72" width="38" height="30" rx="4" class="ft ac" stroke-width="1.5"/>
+            <circle cx="215" cy="84" r="5.5" class="ac" fill="none" stroke-width="1.5"/>
+            <path d="M206 96 l7 -8 5 5 4 -4 6 7" class="ac" fill="none" stroke-width="1.5" stroke-linejoin="round"/>
+            <text x="68" y="140" font-size="9">3 OF 4 AREAS DONE</text>
+          </svg>
+        </div>
+        <div>
+          <h3><span class="n">03</span>Walk it with a template</h3>
+          <p>Reusable checklists by area and item, with a condition scale rather than a
+             tick box, and photos attached where they matter. Findings are append-only
+             — a second look adds an observation, it doesn't erase the first.</p>
+        </div>
+      </div>
+
+    </div>
+  </div></section>
+
+  <!-- ══ 02 · Costs land on doors ══════════════════════════════════════════ -->
+  <section class="section" id="costs"><div class="wrap">
+    <div class="section-head reveal">
+      <span class="label">02 — Reporting</span>
+      <h2>Costs land on doors, not on tickets.</h2>
+    </div>
+
+    <div class="row">
+      <div class="art-col reveal">
+        <svg class="illus" viewBox="0 0 340 230" role="img" aria-label="A building elevation where spend accumulates against each individual unit">
+          <path d="M40 62 L170 20 L300 62" class="ac" fill="none" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+          <rect x="52" y="62" width="236" height="150" rx="6" class="fc st" stroke-width="1.5"/>
+          <g>
+            <rect x="72" y="82" width="58" height="40" rx="4" class="fp sf" stroke-width="1.2"/>
+            <rect x="142" y="82" width="58" height="40" rx="4" class="fp sf" stroke-width="1.2"/>
+            <rect x="212" y="82" width="58" height="40" rx="4" class="fp sf" stroke-width="1.2"/>
+            <rect x="72" y="134" width="58" height="40" rx="4" class="fp sf" stroke-width="1.2"/>
+            <rect x="142" y="134" width="58" height="40" rx="4" class="ft ac" stroke-width="2.5"/>
+            <rect x="212" y="134" width="58" height="40" rx="4" class="fp sf" stroke-width="1.2"/>
+          </g>
+          <text x="158" y="158" font-size="11" style="fill:var(--accent-ink)" font-weight="600">3A</text>
+          <path d="M200 154 H262" class="ac" stroke-width="1.5" stroke-dasharray="3 3"/>
+          <circle cx="200" cy="154" r="3" class="fa"/>
+          <text x="268" y="150" font-size="10" style="fill:var(--ink-2)">R 4 820</text>
+          <text x="268" y="164" font-size="9">12 jobs</text>
+          <text x="72" y="200" font-size="9">HARBOUR VIEW · 6 UNITS</text>
+        </svg>
+      </div>
+      <div class="reveal">
+        <span class="label">Per building · Per unit</span>
+        <h3>Which door is eating your year?</h3>
+        <p>Spend and labour aggregate against the building <em>and</em> against each
+           individual unit, computed from the ledger every time you look rather than
+           cached into a number that drifts.</p>
+        <p>That is the report that tells you a specific flat has had four plumbing
+           call-outs in eight months and is not a maintenance problem but a plumbing
+           problem — the one thing a per-ticket system can never show you.</p>
+        <div class="keyline">
+          <p>A job with no unit is a job you cannot learn anything from later.</p>
+        </div>
       </div>
     </div>
-    <p class="foot-note">This page fetches nothing from anywhere. No CDN, no web fonts, no analytics — <code>mermaid</code> is vendored into <code>site/assets/vendor/</code>. The same rule the product is built to.</p>
-  </div></footer>
+  </div></section>
+
+  <!-- ══ 03 · The comparison ═══════════════════════════════════════════════ -->
+  <section class="section" id="compare"><div class="wrap">
+    <div class="section-head reveal">
+      <span class="label">03 — The difference</span>
+      <h2>The move-out conversation, settled with evidence.</h2>
+      <p>The tenant says the counter was chipped when they moved in. The agent says it
+         wasn't. Both are sincere. Neither has anything to show.</p>
+    </div>
+
+    <div class="row flip">
+      <div class="art-col reveal">
+        <svg class="illus" viewBox="0 0 340 230" role="img" aria-label="Ingoing and outgoing condition reports compared item by item, with each row marked unchanged, deteriorated, or not captured">
+          <text x="18" y="24" font-size="9">INGOING</text>
+          <text x="250" y="24" font-size="9">OUTGOING</text>
+          <rect x="14" y="34" width="112" height="152" rx="8" class="fc st" stroke-width="1.5"/>
+          <rect x="214" y="34" width="112" height="152" rx="8" class="fc st" stroke-width="1.5"/>
+
+          <!-- row 1 : unchanged -->
+          <rect x="28" y="54" width="82" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <rect x="228" y="54" width="82" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <text x="170" y="60" font-size="11" text-anchor="middle">=</text>
+
+          <!-- row 2 : deteriorated (the one that matters) -->
+          <rect x="24" y="76" width="90" height="30" rx="4" class="ft ac" stroke-width="2"/>
+          <rect x="224" y="76" width="90" height="30" rx="4" class="ft ac" stroke-width="2"/>
+          <path d="M130 91 H206" class="ac" stroke-width="2"/>
+          <path d="M200 86 l6 5 -6 5" class="ac" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <text x="168" y="72" font-size="9" text-anchor="middle" style="fill:var(--accent-ink)">WORSE</text>
+
+          <!-- row 3 : unchanged -->
+          <rect x="28" y="124" width="82" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <rect x="228" y="124" width="82" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <text x="170" y="130" font-size="11" text-anchor="middle">=</text>
+
+          <!-- row 4 : not captured ingoing — deliberately NOT a claim -->
+          <rect x="28" y="146" width="82" height="18" rx="3" class="sf" fill="none" stroke-width="1.2" stroke-dasharray="4 3"/>
+          <text x="46" y="159" font-size="8">NO RECORD</text>
+          <rect x="228" y="153" width="82" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <text x="170" y="161" font-size="12" text-anchor="middle" style="fill:var(--ink-3)">?</text>
+
+          <text x="170" y="210" font-size="8" text-anchor="middle">A MISSING BASELINE STAYS MISSING</text>
+        </svg>
+      </div>
+      <div class="reveal">
+        <span class="label">Ingoing / outgoing</span>
+        <h3>The same template, run twice, diffed item by item.</h3>
+        <p>Run a condition report at move-in and another at move-out. Pango lines them
+           up and shows you what changed, in which direction, with both sets of photos
+           side by side.</p>
+        <p>It does not decide who is right. What it does is stop the argument being
+           about memory.</p>
+        <div class="keyline">
+          <p>And it keeps “deteriorated” separate from “never captured on the way in”,
+             so a missing baseline can never be laundered into a confident-looking claim
+             against somebody's deposit.</p>
+        </div>
+      </div>
+    </div>
+
+    <figure class="reveal" style="margin-top:52px">
+      <div class="shot">
+        <div class="shot-bar"><i></i><i></i><i></i><span>pango — inspection comparison</span></div>
+        <img src="./screenshots/inspection-comparison.png" alt="The move-out walkthrough in Pango, showing a condition scale per item with the ingoing record alongside." width="1440" height="900" loading="lazy">
+      </div>
+      <figcaption><b>The move-out walkthrough.</b> A condition scale per item rather than a checkbox, with the ingoing record alongside as you walk.</figcaption>
+    </figure>
+  </div></section>
+
+  <!-- ══ 04 · Offline ══════════════════════════════════════════════════════ -->
+  <section class="section" id="offline"><div class="wrap">
+    <div class="section-head reveal">
+      <span class="label">04 — Where the work happens</span>
+      <h2>Basements don't have signal.</h2>
+    </div>
+
+    <div class="row">
+      <div class="art-col reveal">
+        <svg class="illus" viewBox="0 0 340 220" role="img" aria-label="A tablet, an office machine and a contractor's node syncing directly with each other, and by USB stick, with no cloud in the middle">
+          <!-- crossed-out cloud -->
+          <g opacity=".5">
+            <path d="M136 42 a20 20 0 0 1 38 -8 a15 15 0 0 1 26 8 a13 13 0 0 1 -2 26 h-50 a13 13 0 0 1 -12 -26 z" class="sf" fill="none" stroke-width="1.4"/>
+            <path d="M132 18 L212 74" class="sf" stroke-width="1.6" stroke-linecap="round"/>
+          </g>
+          <text x="222" y="46" font-size="8">NO SERVER<tspan x="222" dy="11">IN THE MIDDLE</tspan></text>
+
+          <!-- tablet -->
+          <rect x="20" y="112" width="62" height="80" rx="7" class="fc st" stroke-width="1.5"/>
+          <rect x="28" y="122" width="46" height="52" rx="3" class="fp sf" stroke-width="1"/>
+          <text x="22" y="206" font-size="8">TABLET · BASEMENT</text>
+
+          <!-- office -->
+          <rect x="132" y="120" width="76" height="64" rx="7" class="fc st" stroke-width="1.5"/>
+          <line x1="132" y1="140" x2="208" y2="140" class="sf" stroke-width="1.2"/>
+          <circle cx="144" cy="130" r="3" class="fa"/>
+          <rect x="144" y="152" width="52" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <rect x="144" y="164" width="38" height="4" rx="2" class="fp sf" stroke-width=".8"/>
+          <text x="136" y="200" font-size="8">OFFICE</text>
+
+          <!-- contractor -->
+          <rect x="258" y="112" width="62" height="80" rx="7" class="fc st" stroke-width="1.5"/>
+          <rect x="266" y="122" width="46" height="52" rx="3" class="fp sf" stroke-width="1"/>
+          <text x="252" y="206" font-size="8">CONTRACTOR</text>
+
+          <!-- direct links -->
+          <path d="M84 150 H128" class="ac" stroke-width="2" stroke-dasharray="5 4"/>
+          <path d="M212 150 H254" class="ac" stroke-width="2" stroke-dasharray="5 4"/>
+
+          <!-- usb stick path — drawn as two halves so the stick and its label sit
+               in a clean gap rather than on top of the dashes -->
+          <path d="M52 100 C 52 84, 84 78, 126 78" class="sf" fill="none" stroke-width="1.3" stroke-dasharray="3 4"/>
+          <path d="M248 78 C 286 78, 288 84, 288 100" class="sf" fill="none" stroke-width="1.3" stroke-dasharray="3 4"/>
+          <rect x="132" y="72" width="26" height="12" rx="2" class="fc ac" stroke-width="1.5"/>
+          <rect x="158" y="75" width="7" height="6" rx="1" class="fa"/>
+          <text x="171" y="82" font-size="8">USB WORKS TOO</text>
+        </svg>
+      </div>
+      <div class="reveal">
+        <span class="label">Offline first</span>
+        <h3>Every screen keeps accepting work with no connection at all.</h3>
+        <p>A contractor in a plant room. A manager walking a block with no coverage. The
+           office line down for a morning. Conventional systems put a server in the
+           middle of every write, so in each of those moments the work either stops or
+           gets scribbled on paper and typed up later — badly, or never.</p>
+        <p>Pango nodes sync directly with each other when they can reach each other. When
+           they can't, a shared folder, a NAS, or a USB stick carried between sites is a
+           perfectly valid way to move the day's work.</p>
+        <div class="keyline">
+          <p>A contractor can run their own node and be a real participant — not a login
+             on somebody else's system that gets revoked when the contract ends.</p>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+  <!-- ══ 05 · Gallery ══════════════════════════════════════════════════════ -->
+  <section class="section" id="screens"><div class="wrap">
+    <div class="section-head reveal">
+      <span class="label">05 — The product</span>
+      <h2>Every shot below is the real thing.</h2>
+      <p>Captured from the compiled binary in demo mode by <code>npm run screenshots</code>.
+         Nothing here is a mock-up or a render.</p>
+    </div>
+
+    <div class="gallery">
+      <figure class="reveal">
+        <div class="shot"><img src="./screenshots/job-detail.png" alt="A job detail page in Pango with its cost ledger and event thread." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Job detail.</b> Append-only costs and hours, and an event thread with a tenant-visible toggle on each entry.</figcaption>
+      </figure>
+      <figure class="reveal" style="transition-delay:.08s">
+        <div class="shot"><img src="./screenshots/reports.png" alt="Reports in Pango showing spend and labour per building and per unit." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Reports.</b> Spend and labour per building and per unit, recomputed from the ledger on every view.</figcaption>
+      </figure>
+      <figure class="reveal">
+        <div class="shot"><img src="./screenshots/inspections.png" alt="The inspections list in Pango, showing ingoing and outgoing pairs per unit." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Inspections.</b> Ingoing and outgoing pairs per unit, scheduled and tracked to completion.</figcaption>
+      </figure>
+      <figure class="reveal" style="transition-delay:.08s">
+        <div class="shot"><img src="./screenshots/buildings.png" alt="Buildings and units in Pango, with units created on first use." width="1440" height="900" loading="lazy"></div>
+        <figcaption><b>Buildings &amp; units.</b> Units become real records on first use, normalised as they are typed.</figcaption>
+      </figure>
+    </div>
+
+    <p class="prose reveal" style="margin-top:34px">
+      Dark-mode shots of every surface are in the
+      <a class="textlink" href="./docs.html#screenshots">screenshot index <span class="arrow">→</span></a>
+    </p>
+  </div></section>
+
+  <!-- ══ 06 · Own it ═══════════════════════════════════════════════════════ -->
+  <section class="section" id="own"><div class="wrap">
+    <div class="band reveal">
+      <span class="label">06 — Self-hosting</span>
+      <h2 style="margin-top:14px">There is no hosted Pango. That is the point.</h2>
+      <p class="prose" style="margin-top:16px;max-width:62ch">
+        No free tier, no seat count, no account with us — because there is nothing to
+        sell you. It is open-source software that runs on hardware you already have, and
+        your data is a file you can copy.
+      </p>
+
+      <div class="band-grid">
+        <div>
+          <h4>One binary, one file</h4>
+          <p>A single executable with the whole interface inside it, plus one SQLite file and a folder of photos. No database server, no queue, no object store. A laptop, an office NAS or a Raspberry Pi is a complete deployment.</p>
+        </div>
+        <div>
+          <h4>It talks to nothing</h4>
+          <p>A fresh install makes no outbound calls: no telemetry, no update check, no licence call, no font CDN. Every address it contacts is one you typed in yourself.</p>
+        </div>
+        <div>
+          <h4>Leaving is a file copy</h4>
+          <p>The database, the node's key and the attachments live in one directory. Back it up the way you already back things up. There is no export feature because nothing is locked in.</p>
+        </div>
+      </div>
+
+      <div class="codeblock" style="margin-top:34px">
+        <div class="bar"><i></i><i></i><i></i><span>the whole install</span></div>
+<pre><span class="c"># try it with a seeded demo portfolio — nothing written to disk</span>
+./pango <span class="k">--demo</span>
+
+<span class="c"># or run it for real: one file, loopback only, no cloud</span>
+./pango <span class="k">--db</span> /var/lib/pango/pango.db</pre>
+      </div>
+
+      <p class="prose" style="margin-top:26px;font-size:15.5px">
+        Running it on a rented box or behind a tunnel so a tablet on mobile data can reach it?
+        That is a different threat model and it has its own chapter —
+        <a class="textlink" href="./docs.html#cloud-node">cloud &amp; tunnelled nodes <span class="arrow">→</span></a>
+      </p>
+    </div>
+  </div></section>
+
+  <!-- ══ Status ════════════════════════════════════════════════════════════ -->
+  <section class="section" style="padding-top:0"><div class="wrap narrow">
+    <div class="note reveal">
+      <b>Where Pango actually is, honestly.</b>
+      <p>
+        The core is built and running: jobs, units, append-only costs and hours, reports,
+        templated inspections and the ingoing/outgoing comparison. Every screenshot on
+        this page comes from that binary. Peer-to-peer sync is implemented but has so far
+        only been exercised by its own test suite rather than in the field. A tenant
+        portal, photo attachment storage, recurring maintenance and compliance
+        certificates are <strong>not built yet</strong>. The per-area breakdown is kept
+        current in the <a href="https://github.com/vul-os/pango#status" target="_blank" rel="noopener">status table</a>,
+        and a feature that silently does nothing is treated as worse than one that says
+        it isn't finished.
+      </p>
+    </div>
+  </div></section>
+
+  <!-- ══ Vulos ═════════════════════════════════════════════════════════════ -->
+  <section class="section" style="padding-top:0"><div class="wrap">
+    <div class="band reveal">
+      <div class="vulos">
+        <img src="./assets/vulos-logo.png" alt="">
+        <div>
+          <h3>Part of VulOS</h3>
+          <p><strong>Vulos publishes one thing: the OS.</strong> The
+             <a class="textlink" href="https://vulos.org" target="_blank" rel="noopener">Vulos OS</a>,
+             all of its apps — Pango included — and the app store are free and open source,
+             dual MIT OR Apache-2.0. You self-host them, on a box you provision and pay
+             for yourself. Vulos does not host boxes and does not bill for anything.</p>
+          <ul>
+            <li><b>Vulos OS</b> — the web-native desktop shell that hosts the apps</li>
+            <li><b>Diwan</b> — documents, sheets, slides, PDF and whiteboards</li>
+            <li><b>Vulos Files</b> — file storage and peer-to-peer sharing</li>
+            <li><b>Ephor</b> — a self-hostable reachability broker your box dials out to</li>
+            <li><b>llmux</b> — sovereign AI gateway</li>
+          </ul>
+          <p><strong>Pango's role</strong> is the property maintenance and inspections app.
+             It runs standalone, and it can be hosted as an app by the Vulos OS — the same
+             binary, with the OS wiring identity and scoped storage in front of it. Those
+             seams are optional by contract: a hard runtime dependency on any of them is
+             forbidden.</p>
+          <a class="textlink" href="https://vulos.org" target="_blank" rel="noopener">Explore VulOS <span class="arrow">→</span></a>
+        </div>
+      </div>
+    </div>
+  </div></section>
+
+</main>
+
+<footer class="site-footer"><div class="wrap">
+  <div class="foot">
+    <div class="left">
+      <img src="./assets/vulos-logo.png" alt="">
+      <span>Part of <a href="https://vulos.org" target="_blank" rel="noopener" style="color:var(--ink)">VulOS</a> — open, self-hostable apps. Standalone by design.</span>
+    </div>
+    <div class="links">
+      <a href="./docs.html">Docs</a>
+      <a href="./docs.html#getting-started">Getting started</a>
+      <a href="./docs.html#faq">FAQ</a>
+      <a href="https://github.com/vul-os/pango" target="_blank" rel="noopener">GitHub</a>
+      <a href="./LICENSE.txt">License</a>
+      <a href="https://vulos.org" target="_blank" rel="noopener">vulos.org</a>
+    </div>
+  </div>
+  <p class="foot-note">
+    <em>Pango</em> — Swahili for the lease, and for the den it is held on.
+    This page fetches nothing from anywhere: no CDN, no web fonts, no analytics, no
+    trackers. The same rule the product itself is built to.
+  </p>
+</div></footer>
+
 <script>
-try {
-  var dark = !window.matchMedia || !window.matchMedia('(prefers-color-scheme: light)').matches;
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: dark ? 'dark' : 'default',
-    securityLevel: 'loose',
-    themeVariables: { fontFamily: 'var(--sans)' }
-  });
-} catch (e) { /* diagram degrades to its source text; the page still works */ }
+// Staggered reveal. Everything is visible without JS — `.reveal` only dims and
+// nudges, and anything below the fold is revealed the moment it is observed.
+(function () {
+  var els = document.querySelectorAll('.reveal');
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce || !('IntersectionObserver' in window)) {
+    els.forEach(function (el) { el.classList.add('in'); });
+    return;
+  }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
+  els.forEach(function (el) { io.observe(el); });
+})();
 </script>
 </body>
 </html>

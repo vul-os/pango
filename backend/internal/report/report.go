@@ -1,4 +1,4 @@
-// Package report computes PropFix's aggregates: spend and labour per building,
+// Package report computes Pango's aggregates: spend and labour per building,
 // per unit and per job, open/closed counts, and created-versus-closed over
 // time.
 //
@@ -24,7 +24,7 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 // Reporter computes aggregates. It is read-only by construction: it holds a

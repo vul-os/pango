@@ -9,8 +9,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const buildingCols = `id, org_id, name, address, lat, lon, unit_scheme, hlc, deleted, created_at`

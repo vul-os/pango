@@ -16,7 +16,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 // ErrMismatch is returned when the two inspections handed to Compare are not a

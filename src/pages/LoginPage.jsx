@@ -37,7 +37,7 @@ export default function LoginPage() {
 
   return (
     <AuthLayout
-      title="Sign in to PropFix"
+      title="Sign in to Pango"
       subtitle="Your building's own maintenance node."
       footer={
         <>

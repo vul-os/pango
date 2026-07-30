@@ -13,8 +13,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const timeCols = `id, org_id, job_id, minutes, note, party_id, hlc, created_at`

@@ -1,4 +1,4 @@
-# PropFix and WRAP
+# Pango and WRAP
 
 > [!WARNING]
 > **📐 Designed, not implemented.** There is no `wrap/` package in this
@@ -11,7 +11,7 @@
 > document and the WRAP specification disagree, **the specification wins** and
 > this document is the bug.
 
-## 1. Why PropFix speaks somebody else's protocol
+## 1. Why Pango speaks somebody else's protocol
 
 In-house maintenance never needs it. A managing agent with in-house staff runs
 one node, and everything stays inside the organisation.
@@ -32,20 +32,20 @@ WRAP removes the race: **the issuer assigns.** The only contended decision is
 made by the party who is already its natural authority — the one who wants the
 work done.
 
-This is *the same rule* PropFix already applies internally, where the building is
-the authority for assignment ([SYNC.md](SYNC.md) §5). PropFix does not adopt
+This is *the same rule* Pango already applies internally, where the building is
+the authority for assignment ([SYNC.md](SYNC.md) §5). Pango does not adopt
 WRAP because it needs a network; it adopts WRAP because WRAP is the same idea,
 already specified, already open, and already implemented by parties who are not
 us. Inventing a parallel one would be exactly the "no parallel inventions" rule
 the VulOS product standard forbids.
 
-The point, in one line: **a plumbing company runs its own PropFix node and
+The point, in one line: **a plumbing company runs its own Pango node and
 receives work orders from a managing agent's node. No platform sits between the
 landlord and the plumber, and no one takes a cut.**
 
 ## 2. Role mapping
 
-| PropFix | WRAP |
+| Pango | WRAP |
 |---|---|
 | Managing agent / landlord / body corporate | **Issuer** |
 | In-house staff | Performer, via a direct offer (`mode = 0`) |
@@ -57,7 +57,7 @@ landlord and the plumber, and no one takes a cut.**
 | Sign-off | `Attestation` |
 
 The tenant row is the one worth pausing on. A tenant is a **participant, not an
-account** — in PropFix and in WRAP alike. They hold no key, install nothing, and
+account** — in Pango and in WRAP alike. They hold no key, install nothing, and
 create no account in order to have a leak fixed and be told it was fixed.
 
 ## 3. The flow
@@ -65,9 +65,9 @@ create no account in order to have a leak fixed and be told it was fixed.
 ```mermaid
 sequenceDiagram
   participant T as Tenant (beneficiary, no key)
-  participant A as Managing agent<br/>(PropFix node — issuer)
+  participant A as Managing agent<br/>(Pango node — issuer)
   participant P as Pool<br/>(distribution only, no authority)
-  participant C as Contractor<br/>(their own PropFix node)
+  participant C as Contractor<br/>(their own Pango node)
 
   T->>A: reports a leak (public job event)
   A->>A: job raised against the unit,<br/>number from the building's sequence
@@ -94,9 +94,9 @@ fixed-price. `trades/v0` is skilled work at a site: scheduled, often multi-visit
 frequently re-quoted after inspection.
 
 Property maintenance is squarely the second. The profile's fields map onto the
-PropFix job almost directly:
+Pango job almost directly:
 
-| WRAP field | Key | PropFix meaning |
+| WRAP field | Key | Pango meaning |
 |---|---|---|
 | `trade` | 32 | `"plumbing"`, `"electrical"`, `"hvac"`, `"carpentry"`, … — the job's trade |
 | `licence` | 33 | Required credential (e.g. `"za:pirb"`) where the work demands one |
@@ -104,7 +104,7 @@ PropFix job almost directly:
 | `materials` | 35 | `{label, qty, cost}` — feeds `cost_entry` rows on receipt |
 | `access` | 36 | Site access: key collection, occupant presence, gate codes |
 
-- `Place.role` is `"site"` — the building, positioned by the `lat`/`lon` PropFix
+- `Place.role` is `"site"` — the building, positioned by the `lat`/`lon` Pango
   already stores for proximity ranking.
 - `Window.kind` is `1` (scheduled appointment). This is the field that makes
   trades expressible at all; an immediate-only model cannot say "Tuesday
@@ -116,7 +116,7 @@ PropFix job almost directly:
 The WRAP spec is explicit that including `trades/v0` in v0 was deliberate:
 designing against delivery alone produces a core that silently assumes work is
 immediate, single-visit and fixed-price. Every one of those assumptions is false
-for a plumber. PropFix is a direct beneficiary of that decision.
+for a plumber. Pango is a direct beneficiary of that decision.
 
 ## 5. Offers, pools, and what a pool is not
 
@@ -135,7 +135,7 @@ That property is what keeps this from being a platform with extra steps.
 
 ## 6. What crosses the boundary, and what does not
 
-This is a privacy boundary, not just a protocol boundary, and PropFix must treat
+This is a privacy boundary, not just a protocol boundary, and Pango must treat
 it as one.
 
 | Stays inside the organisation | Crosses to the performer |
@@ -148,14 +148,14 @@ it as one.
 
 That last row is a rule from the VulOS product standard: **sync travels the sync
 path; cross-boundary messaging carries communication, never app-state
-replication.** PropFix must never smuggle oplog entries through WRAP objects.
+replication.** Pango must never smuggle oplog entries through WRAP objects.
 Two contractors on the same pool must not be able to reconstruct an agent's
 portfolio.
 
 ## 7. Identity and reputation
 
 A WRAP identity is an **Ed25519 keypair held by the participant**, not by a
-platform. PropFix nodes already generate exactly such a keypair on first run for
+platform. Pango nodes already generate exactly such a keypair on first run for
 sync ([CONFIGURATION.md](CONFIGURATION.md#identity--designed)).
 
 Whether the WRAP identity and the sync node key are the **same key** is an
@@ -198,5 +198,5 @@ strengths is a sales page:
 | Conformance against the WRAP test vectors | Not started |
 
 WRAP support is **optional** and off by default
-(`PROPFIX_WRAP`). A PropFix deployment that never sends work outside the
+(`PANGO_WRAP`). A Pango deployment that never sends work outside the
 organisation never touches any of it.

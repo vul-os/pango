@@ -1,19 +1,16 @@
 import { defineConfig, devices } from '@playwright/test'
 
 /**
- * PropFix end-to-end tests.
+ * Pango end-to-end tests.
  *
- * Every spec is meant to boot the real Go binary (`./backend/propfix --demo`)
+ * Every spec is meant to boot the real Go binary (`./backend/pango --demo`)
  * against an ephemeral in-memory database, so there is no global `webServer`
  * here — see e2e/helpers/node.js. That mirrors flowstock's e2e harness.
  *
- * STATUS: every spec in e2e/ is currently `test.skip` — see each spec's
- * header comment for the precise reason. In short: backend/cmd/propfix has
- * no //go:embed for the built React app and main.go registers no "/" route,
- * so the compiled binary this config builds does not serve the app UI yet
- * (it serves /api/ and the marketing /site/ only). The harness itself
- * (global-setup, the PropFixNode helper) is real and exercised by `npm run
- * test:e2e` today — only the specs are gated pending that embed landing.
+ * STATUS: the embed_frontend build lands the React app in the compiled
+ * binary (app_embed.go + main.go's "/" route), so specs run rather than
+ * skip. `npx playwright test` is 4/5 green; the one failure is a real
+ * product gap (see jobs-board.spec.js's inline note), not a harness issue.
  */
 export default defineConfig({
   testDir: './e2e',

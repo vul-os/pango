@@ -5,9 +5,9 @@ agree on. A vector file is the statement of the rule; the prose in `docs/` is
 the explanation of it. Where the two disagree, the vectors are right.
 
 Everything here is plain JSON with no runtime and no network dependency. It is
-checked in, not fetched. Nothing in PropFix's build or runtime reads it — only
+checked in, not fetched. Nothing in Pango's build or runtime reads it — only
 tests do — so this directory can be copied, forked or ignored without affecting
-whether PropFix builds or runs.
+whether Pango builds or runs.
 
 ## `hlc_vectors.json` — HLC stamp format, order and tie-break
 
@@ -15,7 +15,7 @@ Run by `backend/internal/store/hlc_vectors_test.go`.
 
 ### Why this file exists
 
-PropFix's `internal/store/hlc.go` is a near-copy of FlowStock's
+Pango's `internal/store/hlc.go` is a near-copy of FlowStock's
 `backend/internal/store/hlc.go`. The agreed convergence path for the Vulos
 suite is a published substrate crate plus a spec and vectors — **that crate
 does not exist yet**, and until it does neither product may import the other
@@ -44,7 +44,7 @@ things only: `NewHLC(tiebreak, lastSeen)`, `Tick()`, `Observe(remote)` and
 the same four under the same names, so adopting this file there is a copy of
 the runner with the package's own field names, not a port.
 
-One naming difference, no behavioural one: PropFix calls the third field the
+One naming difference, no behavioural one: Pango calls the third field the
 **author public key** and FlowStock calls it the **node id**. FlowStock's node
 ids *are* public keys, so the same bytes end up in the same position and the
 vectors apply verbatim to both.

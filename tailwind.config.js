@@ -1,5 +1,5 @@
 /** @type {import('tailwindcss').Config} */
-// PropFix — instrument-panel feel: sans UI, mono data, dense, confident.
+// Pango — instrument-panel feel: sans UI, mono data, dense, confident.
 // Tokens live in src/index.css as CSS variables; this file just exposes them
 // as Tailwind utilities so app code never reaches for a raw hex.
 export default {

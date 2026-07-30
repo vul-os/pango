@@ -1,4 +1,4 @@
-// Command propfix is the whole product: one static binary that opens one
+// Command pango is the whole product: one static binary that opens one
 // SQLite file and serves the API and the site.
 //
 // There is no config file, no service dependency and no bootstrap step. That is
@@ -20,12 +20,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vul-os/propfix/backend/internal/api"
-	"github.com/vul-os/propfix/backend/internal/repo"
-	"github.com/vul-os/propfix/backend/internal/store"
-	"github.com/vul-os/propfix/backend/internal/sync"
-	"github.com/vul-os/propfix/backend/internal/sync/substrate"
-	"github.com/vul-os/propfix/backend/internal/wrap"
+	"github.com/vul-os/pango/backend/internal/api"
+	"github.com/vul-os/pango/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/sync"
+	"github.com/vul-os/pango/backend/internal/sync/substrate"
+	"github.com/vul-os/pango/backend/internal/wrap"
 )
 
 // version is the build's version string, overridable at link time.
@@ -43,7 +43,7 @@ func envOr(key, def string) string {
 
 func main() {
 	var (
-		dbPath  = flag.String("db", "propfix.db", "path to the SQLite database file")
+		dbPath  = flag.String("db", "pango.db", "path to the SQLite database file")
 		addr    = flag.String("addr", "127.0.0.1:8099", "listen address")
 		demo    = flag.Bool("demo", false, "run an ephemeral in-memory instance seeded with demo data")
 		origins = flag.String("origins", "", "comma-separated CORS allowlist (default: same-origin only)")
@@ -63,12 +63,12 @@ func main() {
 		// different total orders cannot share a replica set and the failure is
 		// silent divergence rather than an error, so every node of a mesh must
 		// be given the same value here before any of them syncs.
-		// The default comes from PROPFIX_MERGER because that is the name
+		// The default comes from PANGO_MERGER because that is the name
 		// docs/CONFIGURATION.md already publishes for this setting; the flag
 		// overrides it. Unlike the pairing secret this is not sensitive, so
 		// having it on the command line is fine.
-		mergeEngine = flag.String("merge-engine", envOr("PROPFIX_MERGER", "builtin"),
-			"merge authority: `builtin` (PropFix's own HLC engine) or `substrate` / `dmtap` "+
+		mergeEngine = flag.String("merge-engine", envOr("PANGO_MERGER", "builtin"),
+			"merge authority: `builtin` (Pango's own HLC engine) or `substrate` / `dmtap` "+
 				"(the shared DMTAP-SYNC algebra, github.com/vul-os/kotva). Must be the same "+
 				"on every node of a replica set")
 	)
@@ -79,7 +79,7 @@ func main() {
 	// network is a decision someone makes explicitly.
 	if err := run(*dbPath, *addr, *origins, *demo, *secure, *syncListen, *syncPeer, *syncFolder,
 		*wrapFlag, *mergeEngine); err != nil {
-		log.Fatalf("propfix: %v", err)
+		log.Fatalf("pango: %v", err)
 	}
 }
 
@@ -108,13 +108,13 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 	// is exactly the mistake that cannot be detected afterwards.
 	switch mergeEngine {
 	case "builtin":
-		// PropFix's own HLC engine. store.Merger stays nil.
+		// Pango's own HLC engine. store.Merger stays nil.
 	case "substrate", "dmtap": // "dmtap" is the spelling docs/CONFIGURATION.md publishes.
 		sub, err := substrate.Open(context.Background(), st, substrate.Options{
 			// Persisting wazero's compiled code turns a few hundred
 			// milliseconds of start-up into a few tens. Optional: with no cache
 			// directory the engine simply compiles on every boot.
-			CacheDir: os.Getenv("PROPFIX_WASM_CACHE"),
+			CacheDir: os.Getenv("PANGO_WASM_CACHE"),
 		})
 		if err != nil {
 			return fmt.Errorf("merge engine: %w", err)
@@ -125,7 +125,7 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 		if err != nil {
 			return fmt.Errorf("merge engine version: %w", err)
 		}
-		log.Printf("propfix: merge engine: %s (binding %s, engine %s, substrate %s, "+
+		log.Printf("pango: merge engine: %s (binding %s, engine %s, substrate %s, "+
 			"skew bound %dms, drift bound above it %s)",
 			substrate.EngineName, v.Binding, v.Engine, v.Substrate, v.HLCSkewMS, sub.MaxDrift())
 	default:
@@ -137,7 +137,7 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 
 	r := repo.New(st)
 	if err := r.PurgeExpiredSessions(); err != nil {
-		log.Printf("propfix: purge expired sessions: %v", err)
+		log.Printf("pango: purge expired sessions: %v", err)
 	}
 
 	srv := api.New(r, version)
@@ -154,8 +154,8 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 		if err != nil {
 			return fmt.Errorf("seed demo: %w", err)
 		}
-		log.Printf("propfix: DEMO MODE — in-memory database, nothing is saved")
-		log.Printf("propfix: sign in as %s / %s", creds.Email, creds.Password)
+		log.Printf("pango: DEMO MODE — in-memory database, nothing is saved")
+		log.Printf("pango: sign in as %s / %s", creds.Email, creds.Password)
 	}
 
 	mux := buildMux(srv, wrapEnabled, st.PublicKeyHex())
@@ -169,8 +169,8 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 
 	if syncListen || syncPeer != "" || syncFolder != "" {
 		syncEngine := sync.New(st)
-		syncEngine.SecretFn = func() string { return os.Getenv("PROPFIX_SYNC_SECRET") }
-		syncEngine.AllowSecretFallback = os.Getenv("PROPFIX_SYNC_SECRET_FALLBACK") == "1"
+		syncEngine.SecretFn = func() string { return os.Getenv("PANGO_SYNC_SECRET") }
+		syncEngine.AllowSecretFallback = os.Getenv("PANGO_SYNC_SECRET_FALLBACK") == "1"
 		if syncFolder != "" {
 			syncEngine.FolderFn = func() string { return syncFolder }
 		}
@@ -180,20 +180,20 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 			// /api/sync/* without shadowing the rest of the API (§9 layering:
 			// sync is its own package, not routed through api/).
 			mux.Handle("/api/sync/", syncEngine.Handler())
-			log.Printf("propfix: sync: serving /api/sync/* (node key %s)", syncEngine.NodeID())
+			log.Printf("pango: sync: serving /api/sync/* (node key %s)", syncEngine.NodeID())
 		}
 		if syncPeer != "" || syncFolder != "" {
 			const syncInterval = 60 * time.Second
 			go syncEngine.RunBackground(bgCtx, syncInterval, func() []string {
 				return store.SplitList(syncPeer)
 			})
-			log.Printf("propfix: sync: background round every %s (peers=%q folder=%q)",
+			log.Printf("pango: sync: background round every %s (peers=%q folder=%q)",
 				syncInterval, syncPeer, syncFolder)
 		}
 	}
 
 	if wrapEnabled {
-		log.Printf("propfix: wrap: trades/v0 binding enabled (identity %s)", st.PublicKeyHex())
+		log.Printf("pango: wrap: trades/v0 binding enabled (identity %s)", st.PublicKeyHex())
 	}
 
 	httpSrv := &http.Server{
@@ -207,7 +207,7 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 
 	errCh := make(chan error, 1)
 	go func() {
-		log.Printf("propfix %s listening on http://%s", version, addr)
+		log.Printf("pango %s listening on http://%s", version, addr)
 		if err := httpSrv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			errCh <- err
 		}
@@ -222,7 +222,7 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 	case err := <-errCh:
 		return err
 	case <-stop:
-		log.Printf("propfix: shutting down")
+		log.Printf("pango: shutting down")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
@@ -244,7 +244,7 @@ func buildMux(srv *api.Server, wrapEnabled bool, nodePubKeyHex string) *http.Ser
 	if site := newSiteHandler(); site != nil {
 		mux.Handle("/site/", http.StripPrefix("/site/", site))
 	} else {
-		log.Printf("propfix: no site/ directory found; /site/ not served")
+		log.Printf("pango: no site/ directory found; /site/ not served")
 	}
 
 	// The app itself. Registered last and at the root so it catches everything
@@ -253,7 +253,7 @@ func buildMux(srv *api.Server, wrapEnabled bool, nodePubKeyHex string) *http.Ser
 	if app := newAppHandler(); app != nil {
 		mux.Handle("/", app)
 	} else {
-		log.Printf("propfix: no dist/ found; the app is not served (run `npm run build`)")
+		log.Printf("pango: no dist/ found; the app is not served (run `npm run build`)")
 	}
 
 	// /.well-known/* is a namespace other software probes to discover this

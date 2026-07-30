@@ -2,7 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ─── PropFix design tokens ───────────────────────────────────────────────
+/* ─── Pango design tokens ───────────────────────────────────────────────
  * Instrument-panel feel: dense, confident, sans for UI chrome, mono for
  * data (ids, amounts, timestamps, HLCs). Light is the default; dark mirrors
  * it rather than inverting blindly. The accent (#FF7A29) is the mark's

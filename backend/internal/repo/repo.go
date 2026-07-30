@@ -15,7 +15,7 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 // ErrNotFound is returned when a row does not exist, or exists in a different

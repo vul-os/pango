@@ -1,6 +1,6 @@
 # Build output
 dist/
-backend/propfix
+backend/pango
 backend/bin/
 backend/tmp/
 
@@ -36,4 +36,4 @@ qa-shots/
 *.swp
 
 # Embedded-site staging copy (scripts/build-embedded.sh) — build input, not source
-backend/cmd/propfix/site/
+backend/cmd/pango/site/

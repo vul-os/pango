@@ -12,8 +12,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const partyCols = `id, org_id, kind, name, email, phone, pubkey, hlc, deleted, created_at`

@@ -6,7 +6,7 @@ export default function NotFoundPage() {
   return (
     <EmptyState
       title="Page not found"
-      description="That address does not lead anywhere in PropFix."
+      description="That address does not lead anywhere in Pango."
       action={
         <Link to="/jobs">
           <Button variant="primary">Back to jobs</Button>

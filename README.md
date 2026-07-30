@@ -1,15 +1,18 @@
 <div align="center">
 
-<img src="docs/assets/logo-mark.svg" alt="PropFix" width="110" />
+<img src="docs/assets/logo-mark.svg" alt="Pango" width="110" />
 
-# PropFix
+# Pango
 
-### Building maintenance and inspections you actually own.
+### Know what happened in every unit — and be able to prove it.
 
-Raise a job against a unit, cost it, close it — and settle move-out damage with
-**ingoing/outgoing inspection comparison** instead of an argument.
-**One static binary, one SQLite file.** No cloud account, no subscription, no
-external service.
+Raise a job against a door, cost it as the work happens, close it. Then settle
+move-out damage with an **ingoing/outgoing inspection comparison** instead of an
+argument.
+
+For managing agents, landlords with a portfolio, body corporates and facilities
+teams. **One static binary, one SQLite file.** No cloud account, no subscription,
+no external service — and it keeps accepting work with no connection at all.
 
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](CHANGELOG.md)
 [![License: MIT OR Apache-2.0](https://img.shields.io/badge/License-MIT%20OR%20Apache--2.0-FF7A29.svg)](LICENSE-MIT)
@@ -20,17 +23,18 @@ external service.
 
 [**Quick start**](#quick-start) · [**Screenshots**](#screenshots) · [**How it works**](#how-it-works) · [**Status**](#status) · [**Docs**](docs/)
 
-<sub><em>Vulos — rooted in <strong>vula</strong>, the Zulu and Xhosa word for <strong>open</strong>.</em></sub>
+<sub><em><strong>Pango</strong> — Swahili for the <strong>lease</strong>, and for the <strong>den</strong> it is held on.<br/>
+Part of Vulos — rooted in <strong>vula</strong>, the Zulu and Xhosa word for <strong>open</strong>.</em></sub>
 
 <br/>
 
-<img src="docs/screenshots/hero.png" alt="PropFix — maintenance jobs, per-unit costing and condition inspections, self-hosted" width="900" />
+<img src="docs/screenshots/hero.png" alt="Pango — maintenance jobs, per-unit costing and condition inspections, self-hosted" width="900" />
 
 </div>
 
 ---
 
-## What is PropFix?
+## What is Pango?
 
 Maintenance and inspection software for people who look after property —
 managing agents, landlords with a portfolio, body corporates, facilities teams.
@@ -46,7 +50,7 @@ normalised key, so `Flat 3A`, `3A` and `flat 3a` are one door rather than three
 rows quietly fragmenting your reporting.
 
 **Inspections compare.** Run an ingoing condition report at move-in and an
-outgoing one at move-out, and PropFix diffs them item by item — what changed,
+outgoing one at move-out, and Pango diffs them item by item — what changed,
 in which direction, and what degraded. Damage liability becomes evidence rather
 than a disagreement.
 
@@ -72,20 +76,20 @@ than a disagreement.
 ## Quick start
 
 ```bash
-git clone https://github.com/vul-os/propfix && cd propfix
+git clone https://github.com/vul-os/pango && cd pango
 npm install && npm run build          # build the app
 bash scripts/build-embedded.sh        # compile it into the binary
-./backend/propfix --demo              # http://localhost:8080
+./backend/pango --demo              # http://localhost:8099
 ```
 
 Demo mode runs entirely in memory with a seeded portfolio — no database, no
-configuration, nothing written to disk. Sign in as `demo@propfix.local` /
+configuration, nothing written to disk. Sign in as `demo@pango.local` /
 `demopassword`.
 
 For a real deployment:
 
 ```bash
-./backend/propfix --db /var/lib/propfix/propfix.db --addr 0.0.0.0:8080
+./backend/pango --db /var/lib/pango/pango.db --addr 0.0.0.0:8099
 ```
 
 The first account you register becomes the owner; registration then closes, and
@@ -151,8 +155,8 @@ one that says it is not built.
 
 | Flag | Default | Description |
 |---|---|---|
-| `--db` | `propfix.db` | SQLite file path |
-| `--addr` | `:8080` | Listen address |
+| `--db` | `pango.db` | SQLite file path |
+| `--addr` | `127.0.0.1:8099` | Listen address |
 | `--demo` | off | In-memory demo data; forces `:memory:` so it can never touch a real database |
 | `--sync-listen` | off | Accept sync from enrolled peers |
 | `--sync-peer` | — | Peer URL to sync with |
@@ -172,6 +176,7 @@ connections.
 | [WRAP](docs/WRAP.md) | Cross-organisation work orders |
 | [Inspections](docs/INSPECTIONS.md) | Condition capture and comparison |
 | [Self-hosting](docs/SELFHOST.md) | Deployment |
+| [Cloud & tunnelled nodes](docs/CLOUD-NODE.md) | Running on a public address — a different threat model |
 | [Threat model](docs/THREAT-MODEL.md) | Including what is *not* protected |
 | [FAQ](docs/FAQ.md) | |
 
@@ -196,8 +201,8 @@ style preferences and are not.
 
 ## License
 
-[MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE) — © VulOS. PropFix is a VulOS project;
-source and issues at [github.com/vul-os/propfix](https://github.com/vul-os/propfix).
+[MIT](LICENSE-MIT) OR [Apache-2.0](LICENSE-APACHE) — © VulOS. Pango is a VulOS project;
+source and issues at [github.com/vul-os/pango](https://github.com/vul-os/pango).
 
 ---
 

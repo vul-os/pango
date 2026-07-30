@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 // createInspection is a small helper around the JSON API so each test reads

@@ -1,7 +1,7 @@
 # Threat model
 
 > [!WARNING]
-> **📐 Designed, not implemented.** This describes the security posture PropFix
+> **📐 Designed, not implemented.** This describes the security posture Pango
 > is being built to, from [ARCHITECTURE.md](ARCHITECTURE.md) §11. **None of it
 > is currently enforced by running code**, because there is no running code. A
 > threat model for software that does not exist is a specification, and should
@@ -22,7 +22,7 @@
 | The node's Ed25519 key | Its identity to every peer. |
 | The pairing secret | Authorises a new key to be enrolled. |
 
-Inspection photos deserve emphasis. A PropFix database is a set of photographs
+Inspection photos deserve emphasis. A Pango database is a set of photographs
 of the interiors of dwellings, keyed to their addresses and the names of the
 people who live in them. It should be handled accordingly.
 
@@ -37,7 +37,7 @@ people who live in them. It should be handled accordingly.
 | A user of one organisation trying to read another's data | **Yes** |
 | A tenant trying to read internal notes | **Yes** |
 | The operator of a relay or tunnel in the path | **Yes**, and the answer is unflattering — see §4 |
-| A hostile host / cloud operator with root on the box | **No.** Root on the box is game over; PropFix does not pretend otherwise. |
+| A hostile host / cloud operator with root on the box | **No.** Root on the box is game over; Pango does not pretend otherwise. |
 | A nation-state adversary targeting a specific user | **No.** |
 
 ## 3. Design decisions that carry security weight
@@ -113,7 +113,7 @@ Stated plainly, because a threat model that only lists mitigations is marketing.
 
 | Situation | What they get |
 |---|---|
-| **Stolen unlocked device** | Everything on it. PropFix does not encrypt the database at rest. Use full-disk encryption; it is the OS's job and the OS does it better. |
+| **Stolen unlocked device** | Everything on it. Pango does not encrypt the database at rest. Use full-disk encryption; it is the OS's job and the OS does it better. |
 | **Stolen locked device, no FDE** | The database file and the attachments. `0600` stops another *user*, not someone holding the disk. |
 | **Root on the box** | Everything, including `node.key` — so the ability to impersonate that node to its peers until it is revoked. |
 | **A malicious enrolled peer** | Everything that node is meant to receive, which for a full peer is the replica. **Enrolment is trust.** Enrol a contractor's node only if you would give that contractor the data. |

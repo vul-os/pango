@@ -5,7 +5,7 @@
 **Please report vulnerabilities privately. Do not open a public issue.**
 
 Use GitHub's private vulnerability reporting on
-[`vul-os/propfix`](https://github.com/vul-os/propfix/security/advisories/new),
+[`vul-os/pango`](https://github.com/vul-os/pango/security/advisories/new),
 or contact the maintainers privately if that is unavailable.
 
 Please include:
@@ -62,7 +62,7 @@ report.
   delegated to the transport you choose.
 - A relay or tunnel in the path is a **content-visible L7 hop**.
 - **A full peer replicates the dataset.** Enrolment is trust.
-- **Root on the box is game over.** PropFix does not defend against its own host.
+- **Root on the box is game over.** Pango does not defend against its own host.
 
 ## Legacy credential exposure
 
@@ -89,8 +89,8 @@ release workflow published a checksums file that consequently nobody read. That 
 To verify by hand instead, or to check the provenance signature as well:
 
 ```sh
-curl -fsSLO https://raw.githubusercontent.com/vul-os/propfix/vX.Y.Z/scripts/verify.sh
-bash verify.sh --tag vX.Y.Z --attest propfix-linux-amd64
+curl -fsSLO https://raw.githubusercontent.com/vul-os/pango/vX.Y.Z/scripts/verify.sh
+bash verify.sh --tag vX.Y.Z --attest pango-linux-amd64
 ```
 
 Both scripts have two outcomes: verified, or a non-zero exit with a diagnostic naming what
@@ -115,7 +115,7 @@ looks like verification while checking nothing, which is worse than no check at 
 | 13 | release version unresolvable and none pinned (`install.sh` only) |
 
 Exit 13 is the no-fall-open guard: if the release API cannot be reached, `install.sh` will
-not guess a tag or fall back to a branch. Pin one with `PROPFIX_VERSION=vX.Y.Z`.
+not guess a tag or fall back to a branch. Pin one with `PANGO_VERSION=vX.Y.Z`.
 
 Re-prove the refusals at any time — `bash scripts/verify.sh --selftest` (24 cases) and
 `sh install.sh --selftest` (16 cases). Each stands up a synthetic origin broken in exactly

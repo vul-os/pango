@@ -25,7 +25,7 @@ func newAppHandler() http.Handler {
 
 // findDist walks up from the working directory looking for a dist/ directory
 // containing index.html, so the server runs the same from backend/,
-// backend/cmd/propfix/ or the repo root.
+// backend/cmd/pango/ or the repo root.
 func findDist() string {
 	dir, err := os.Getwd()
 	if err != nil {

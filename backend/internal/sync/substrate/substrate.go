@@ -9,11 +9,11 @@ package substrate
 // decides who won a conflicting write and what an add-only set contains.
 //
 // It does NOT take over minting. store.Journal mints an op's stamp from
-// PropFix's own HLC and then hands the finished op here, and that stays true,
-// because the stamp is not only an ordering device in PropFix — it is the
+// Pango's own HLC and then hands the finished op here, and that stays true,
+// because the stamp is not only an ordering device in Pango — it is the
 // oplog's primary key and the `hlc` column of every replicated row. There is
 // still exactly one minter, so there is no second timeline: this engine's clock
-// is fed and never asked. `Mint` folds in the stamp PropFix just minted;
+// is fed and never asked. `Mint` folds in the stamp Pango just minted;
 // `Ingest` folds in a peer's, through the drift bound below. Nothing here ever
 // calls the engine clock's Tick.
 //
@@ -45,8 +45,8 @@ import (
 	"time"
 
 	kotvasync "github.com/vul-os/kotva/bindings/go"
-	"github.com/vul-os/propfix/backend/internal/store"
-	propsync "github.com/vul-os/propfix/backend/internal/sync"
+	"github.com/vul-os/pango/backend/internal/store"
+	propsync "github.com/vul-os/pango/backend/internal/sync"
 )
 
 // SkewRefusalCode is the §3 refusal the engine raises on the op-ingest path when
@@ -54,9 +54,9 @@ import (
 // the replica is not modified.
 const SkewRefusalCode = "0x0A05"
 
-// DefaultNS is the namespace every PropFix op is minted into. See the package
+// DefaultNS is the namespace every Pango op is minted into. See the package
 // doc on why org_id is not the namespace.
-const DefaultNS = "propfix"
+const DefaultNS = "pango"
 
 // Options configures Open.
 type Options struct {
@@ -78,7 +78,7 @@ type Options struct {
 	NowFn func() int64
 }
 
-// Engine is the shared merge engine, wired to one PropFix store.
+// Engine is the shared merge engine, wired to one Pango store.
 //
 // The binding serialises calls on one Instance internally; the mutex here makes
 // that model explicit rather than adding a second one on top of it.
@@ -175,7 +175,7 @@ func Open(ctx context.Context, s *store.Store, opt Options) (*Engine, error) {
 		ns:     ns,
 		nowFn:  nowFn,
 		// Seeded from this node's own journal so the engine's clock starts
-		// where PropFix's does. Seeding bypasses the drift bound by design —
+		// where Pango's does. Seeding bypasses the drift bound by design —
 		// see store.NewHLCWithClock.
 		guard: store.NewHLCWithClock(author, s.MaxJournalledHLC(), opt.MaxDrift, nowFn),
 	}
@@ -198,7 +198,7 @@ func Open(ctx context.Context, s *store.Store, opt Options) (*Engine, error) {
 	e.kinds = kinds{setAdd: k.SetAdd, lwwSet: k.LWWSet}
 
 	// The whole point of a shared drift bound is that it sits outside the
-	// engine's. If a future engine tightened its own bound past PropFix's, the
+	// engine's. If a future engine tightened its own bound past Pango's, the
 	// guard would be dead code and the poisoning path would be open again, so
 	// this refuses to open rather than to run unguarded.
 	v, err := in.Version()
@@ -460,7 +460,7 @@ func (e *Engine) resolveLocked(tbl, rowID string) (json.RawMessage, string, bool
 // UnionMembers returns every element the engine holds for an add-only table, as
 // the ops they were minted from, oldest stamp first.
 //
-// It is the read that matters for money and hours. PropFix reads a job's cost as
+// It is the read that matters for money and hours. Pango reads a job's cost as
 // SUM(amount_minor) over its entries, so "how many elements does the engine
 // actually hold?" is the same question as "is the total right?" — and §4.3
 // identifies an element by its VALUE, which is exactly how a total silently
@@ -620,7 +620,7 @@ func (e *Engine) StateRoot() ([]byte, error) {
 	return e.eng.StateRoot()
 }
 
-// VersionVector is the engine's per-author high-water marks, in PropFix's own
+// VersionVector is the engine's per-author high-water marks, in Pango's own
 // stamp spelling so it can be compared against store.Vector directly.
 func (e *Engine) VersionVector() (map[string]string, error) {
 	e.mu.Lock()
@@ -644,7 +644,7 @@ func (e *Engine) Version() (kotvasync.Version, error) {
 }
 
 // sameOp checks that an envelope decodes back to the op record it travelled
-// with. A mismatch means the bytes the engine merged and the bytes PropFix will
+// with. A mismatch means the bytes the engine merged and the bytes Pango will
 // write to its tables are not the same write, which is silent divergence on one
 // node — so it is refused rather than reconciled.
 func sameOp(claimed, decoded store.Op) error {

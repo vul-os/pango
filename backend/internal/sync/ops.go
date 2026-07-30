@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 // OpsAfter returns ops that a peer holding vector lacks: for each op, it is

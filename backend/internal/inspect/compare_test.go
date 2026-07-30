@@ -7,7 +7,7 @@ package inspect
 import (
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 func mkItem(id, section, label string, sort int64) domain.TemplateItem {

@@ -16,8 +16,8 @@ import (
 	"time"
 
 	kotvasync "github.com/vul-os/kotva/bindings/go"
-	"github.com/vul-os/propfix/backend/internal/store"
-	"github.com/vul-os/propfix/backend/internal/sync/substrate"
+	"github.com/vul-os/pango/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/sync/substrate"
 )
 
 // frozen is the fixed "now" every test in this file runs at, so a stamp's
@@ -27,7 +27,7 @@ const frozen int64 = 1_700_000_000_000
 
 func openAt(t *testing.T, now *int64) (*store.Store, *substrate.Engine) {
 	t.Helper()
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}
@@ -190,7 +190,7 @@ func TestIngestRefusesSkewAndLeavesTheReplicaUntouched(t *testing.T) {
 
 // A stamp naming an author that is not a 32-byte key is refused rather than
 // forwarded. The engine's author field is a public key; anything else would be
-// a different identity space, and PropFix has exactly one.
+// a different identity space, and Pango has exactly one.
 func TestObserveRefusesAStampWithoutARealKey(t *testing.T) {
 	now := frozen
 	_, e := openAt(t, &now)
@@ -202,7 +202,7 @@ func TestObserveRefusesAStampWithoutARealKey(t *testing.T) {
 		"",
 	} {
 		if err := e.Observe(bad); err == nil {
-			t.Errorf("stamp %q was accepted; PropFix's author field is an Ed25519 public key "+
+			t.Errorf("stamp %q was accepted; Pango's author field is an Ed25519 public key "+
 				"and nothing else may enter the order", bad)
 		}
 	}
@@ -215,7 +215,7 @@ func TestObserveRefusesAStampWithoutARealKey(t *testing.T) {
 // raised its own bound, and the poisoning path would be open again on exactly
 // the nodes that had already been bitten once.
 func TestSeedingFromOurOwnJournalIsNotADriftBoundBypass(t *testing.T) {
-	s, err := store.Open(filepath.Join(t.TempDir(), "propfix.db"))
+	s, err := store.Open(filepath.Join(t.TempDir(), "pango.db"))
 	if err != nil {
 		t.Fatalf("open store: %v", err)
 	}

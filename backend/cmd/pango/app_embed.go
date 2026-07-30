@@ -27,7 +27,7 @@ var appFS embed.FS
 func newAppHandler() http.Handler {
 	sub, err := fs.Sub(appFS, "dist")
 	if err != nil {
-		log.Printf("propfix: embedded app not found: %v", err)
+		log.Printf("pango: embedded app not found: %v", err)
 		return nil
 	}
 	return spaHandler(http.FS(sub))

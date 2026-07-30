@@ -1,11 +1,11 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// PropFix ships as one Go binary + one SQLite file (docs/ARCHITECTURE.md §1).
-// In development the API lives on its own port (`./backend/propfix --demo
+// Pango ships as one Go binary + one SQLite file (docs/ARCHITECTURE.md §1).
+// In development the API lives on its own port (`./backend/pango --demo
 // --addr 127.0.0.1:8799`) and Vite proxies /api/* to it so the browser sees
 // one origin and the session cookie behaves exactly as it will in production.
-const apiTarget = process.env.PROPFIX_API_PROXY || 'http://127.0.0.1:8799'
+const apiTarget = process.env.PANGO_API_PROXY || 'http://127.0.0.1:8799'
 
 export default defineConfig({
   plugins: [react()],

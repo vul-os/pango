@@ -397,7 +397,7 @@ func (b Bid) ToObject(performer [32]byte, ts string) *Object {
 	return &Object{Kind: KindBid, Author: performer, TS: ts, Fields: f}
 }
 
-// ── Assignment (kind 0x04, §3.6) — issuer-only, enforced in propfix.go ─────
+// ── Assignment (kind 0x04, §3.6) — issuer-only, enforced in pango.go ─────
 
 type Assignment struct {
 	Order     []byte // 6, MUST

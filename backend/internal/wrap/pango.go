@@ -1,13 +1,13 @@
 package wrap
 
-// The trades/v0 binding: mapping a PropFix job onto a WRAP WorkOrder and
+// The trades/v0 binding: mapping a Pango job onto a WRAP WorkOrder and
 // back (docs/WRAP.md §2, §4), and the one authorship rule this package
 // enforces outside of Decode — an Assignment MUST be authored by the
 // WorkOrder's own issuer (WRAP 02-objects.md §3.6, 04-signing.md §5.5).
 //
 // docs/WRAP.md's role table:
 //
-//	PropFix              WRAP
+//	Pango              WRAP
 //	Managing agent       Issuer
 //	In-house staff       Performer via direct offer (mode = 0)
 //	External contractor  Performer, possibly via a pool
@@ -21,10 +21,10 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
-// ProfileTrades is the WRAP profile identifier PropFix work orders carry
+// ProfileTrades is the WRAP profile identifier Pango work orders carry
 // (WRAP 11-profiles.md §12.3).
 const ProfileTrades = "trades/v0"
 
@@ -44,11 +44,11 @@ const (
 	VisitFollowUp  uint64 = 2
 )
 
-// JobToWorkOrderOptions carries the fields PropFix's domain.Job has no place
-// to keep (WRAP requires an expiry with no default; PropFix jobs do not
+// JobToWorkOrderOptions carries the fields Pango's domain.Job has no place
+// to keep (WRAP requires an expiry with no default; Pango jobs do not
 // track a bidding/scheduling window or a licence requirement) so a caller
 // supplies them explicitly rather than this package inventing a silent
-// default that would make every PropFix work order expire at the same
+// default that would make every Pango work order expire at the same
 // arbitrary instant.
 type JobToWorkOrderOptions struct {
 	TS      string // HLC stamp, MUST be set — WRAP 02-objects.md §3.2 key 5.
@@ -59,7 +59,7 @@ type JobToWorkOrderOptions struct {
 	Access  string
 }
 
-// JobToWorkOrder maps a PropFix job, its building and (optionally) its unit
+// JobToWorkOrder maps a Pango job, its building and (optionally) its unit
 // onto a `trades/v0` WorkOrder (docs/WRAP.md §4). The job's own id and
 // building id travel in `refs` so WorkOrderToJob can recover them, and so an
 // issuer can correlate an incoming Bid or Progress back to its own record —
@@ -97,9 +97,9 @@ func JobToWorkOrder(job domain.Job, building domain.Building, unitLabel string, 
 		Window:  opts.Window,
 		Expires: opts.Expires,
 		Refs: map[string]string{
-			"propfix_job_id":      job.ID,
-			"propfix_building_id": job.BuildingID,
-			"propfix_org_id":      job.OrgID,
+			"pango_job_id":      job.ID,
+			"pango_building_id": job.BuildingID,
+			"pango_org_id":      job.OrgID,
 		},
 		Body: body,
 	}
@@ -138,7 +138,7 @@ func JobFromWorkOrder(o *Object) (domain.Job, WorkOrder, error) {
 		}
 	}
 	if wo.Refs != nil {
-		if id := wo.Refs["propfix_job_id"]; id != "" {
+		if id := wo.Refs["pango_job_id"]; id != "" {
 			j.ID = id
 		}
 	}
@@ -148,9 +148,9 @@ func JobFromWorkOrder(o *Object) (domain.Job, WorkOrder, error) {
 // Refs keys JobToWorkOrder writes, exported so a caller can look them up
 // without hard-coding the strings.
 const (
-	RefJobID      = "propfix_job_id"
-	RefBuildingID = "propfix_building_id"
-	RefOrgID      = "propfix_org_id"
+	RefJobID      = "pango_job_id"
+	RefBuildingID = "pango_building_id"
+	RefOrgID      = "pango_org_id"
 )
 
 // VerifyAssignmentAuthor enforces WRAP's one hard authorship rule (§3.6,

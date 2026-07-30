@@ -2,7 +2,7 @@ package main
 
 // Demo seeding (§12).
 //
-// `propfix --demo` has to produce a browsable product with no database, no
+// `pango --demo` has to produce a browsable product with no database, no
 // configuration and no signup, because it is what the screenshotter runs
 // against and the first thing a new contributor sees. A demo that shows three
 // empty tables teaches nobody what the product is.
@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/repo"
 )
 
 type demoCreds struct {
@@ -28,7 +28,7 @@ type demoCreds struct {
 }
 
 func seedDemo(r *repo.Repo) (demoCreds, error) {
-	creds := demoCreds{Email: "demo@propfix.local", Password: "demopassword"}
+	creds := demoCreds{Email: "demo@pango.local", Password: "demopassword"}
 
 	org, err := r.CreateOrg("Meridian Property Management")
 	if err != nil {

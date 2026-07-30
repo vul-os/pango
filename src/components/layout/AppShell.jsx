@@ -41,7 +41,7 @@ export default function AppShell() {
         <div className="mb-6 flex items-center gap-2 px-1">
           <img src="/logo-mark.svg" alt="" width={26} height={26} className="rounded-[6px]" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold leading-tight">PropFix</p>
+            <p className="truncate text-sm font-semibold leading-tight">Pango</p>
             <p className="truncate text-2xs leading-tight text-ink-faint">{org?.name || ' '}</p>
           </div>
         </div>

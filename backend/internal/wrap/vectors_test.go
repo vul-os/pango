@@ -6,11 +6,11 @@ package wrap
 // precedence over the prose; a conformance claim requires all vectors pass,
 // with no silent skips.
 //
-// This package is PropFix's narrow WRAP binding — object encoding, content
+// This package is Pango's narrow WRAP binding — object encoding, content
 // addressing, signing, decode-time verification, and the one authorship rule
 // (Assignment-by-issuer) it needs for its own trades/v0 mapping. It does NOT
 // implement WRAP's HLC, merge algebra, lifecycle fold, or fulfilment-proof
-// verification — those live in PropFix's own store/domain layers using its
+// verification — those live in Pango's own store/domain layers using its
 // own oplog CRDT, not in this package. Vectors in the groups listed in
 // notCoveredGroups below are therefore marked NOT-COVERED here, not silently
 // passed and not silently dropped: every vector in the file gets a subtest,
@@ -22,7 +22,7 @@ package wrap
 //
 // The vectors are NOT vendored here: they are loaded from a sibling checkout
 // of github.com/vul-os/wrap (../../../../wrap/conformance/wrap_vectors.json
-// from this package), or from WRAP_VECTORS_PATH. A propfix-only checkout
+// from this package), or from WRAP_VECTORS_PATH. A pango-only checkout
 // therefore has nothing to run.
 //
 // That absence used to be a bare t.Skip, which `go test ./...` renders as a
@@ -106,8 +106,8 @@ var minVectorsByGroup = map[string]int{
 // absent-vectors banner, so "we pass conformance" is never readable as more
 // than it is.
 var notCoveredGroups = map[string]string{
-	"hlc":    "internal/wrap implements no HLC mint/observe logic (that lives in PropFix's internal/store.HLC, a separate package with its own tests and its own vector file at conformance/hlc_vectors.json, not exercised by this WRAP binding)",
-	"merge":  "internal/wrap implements no merge/union/state-root logic; PropFix's own CRDT oplog (internal/sync) is a separate algebra, not this package's WRAP object union",
+	"hlc":    "internal/wrap implements no HLC mint/observe logic (that lives in Pango's internal/store.HLC, a separate package with its own tests and its own vector file at conformance/hlc_vectors.json, not exercised by this WRAP binding)",
+	"merge":  "internal/wrap implements no merge/union/state-root logic; Pango's own CRDT oplog (internal/sync) is a separate algebra, not this package's WRAP object union",
 	"fold":   "internal/wrap implements no §6.3 lifecycle fold (no state-from-object-set computation exists in this package)",
 	"expiry": "internal/wrap has no lifecycle/fold engine to compute a derived `expired` state from (WorkOrder.Expires is readable as data, but nothing in this package computes state from it)",
 	"proof":  "internal/wrap has no fulfilment-proof (handoff-code commitment) verification function; the commit hash in this vector was independently verified against a second, non-Go BLAKE3 implementation while authoring the vectors, but nothing in this package checks it",
@@ -985,7 +985,7 @@ func runTiebreak(t *testing.T, vf *vectorsFile, v map[string]any) (string, strin
 		}
 		return "PASS", ""
 	default:
-		return "NOT_COVERED", "internal/wrap stores `ts` as an opaque string (Object.TS) but implements no comparator, ordering, or tie-break logic over it — that lives in PropFix's own store/oplog layer, a different HLC implementation not wired to this package"
+		return "NOT_COVERED", "internal/wrap stores `ts` as an opaque string (Object.TS) but implements no comparator, ordering, or tie-break logic over it — that lives in Pango's own store/oplog layer, a different HLC implementation not wired to this package"
 	}
 }
 

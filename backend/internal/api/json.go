@@ -15,7 +15,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/vul-os/propfix/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/repo"
 )
 
 const maxBodyBytes = 1 << 20 // 1 MiB: no legitimate write here is larger

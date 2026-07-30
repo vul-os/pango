@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 
-const KEY = 'propfix.theme'
+const KEY = 'pango.theme'
 
 function resolve(pref) {
   if (pref === 'system') {

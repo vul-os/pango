@@ -1,5 +1,5 @@
 {
-  "name": "propfix",
+  "name": "pango",
   "version": "0.1.0",
   "private": true,
   "description": "Building maintenance and inspections you actually own. One static binary, one SQLite file.",
@@ -7,7 +7,7 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/vul-os/propfix.git"
+    "url": "https://github.com/vul-os/pango.git"
   },
   "engines": {
     "node": ">=20"
@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:all": "vite build && cp -r site backend/cmd/propfix/site && cp -r dist backend/cmd/propfix/dist && cd backend && go build -tags embed_frontend -ldflags \"-X main.version=$npm_package_version\" -o propfix ./cmd/propfix && cd .. && rm -rf backend/cmd/propfix/site backend/cmd/propfix/dist",
+    "build:all": "vite build && cp -r site backend/cmd/pango/site && cp -r dist backend/cmd/pango/dist && cd backend && go build -tags embed_frontend -ldflags \"-X main.version=$npm_package_version\" -o pango ./cmd/pango && cd .. && rm -rf backend/cmd/pango/site backend/cmd/pango/dist",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",

@@ -6,10 +6,10 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 > [!NOTE]
-> PropFix is being **rebuilt from scratch**, and nothing has been **released**:
+> Pango is being **rebuilt from scratch**, and nothing has been **released**:
 > there is no tag, no published binary and no published image. The tree does
 > build and run — `npm run build:all` produces a single binary with the frontend
-> embedded, and `propfix --demo` serves a seeded in-memory instance — so "not
+> embedded, and `pango --demo` serves a seeded in-memory instance — so "not
 > released" is the claim here, not "not runnable". A feature only appears under
 > **Added** once it is implemented; a design document for it is documentation,
 > not a feature.
@@ -24,10 +24,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rest of the suite runs, executed through wazero, so it is pure Go and
   `CGO_ENABLED=0` cross-compilation is unaffected (verified for linux
   amd64/arm64/arm, darwin amd64/arm64, windows amd64, freebsd amd64). Select it
-  with `--merge-engine=substrate` (or `PROPFIX_MERGER`); an unrecognised value is
+  with `--merge-engine=substrate` (or `PANGO_MERGER`); an unrecognised value is
   fatal rather than defaulted. Default is still `builtin`.
   - It replaces the **algebra**, not the clock: `store.Journal` still mints the
-    stamp, because in PropFix a stamp is also the oplog's primary key and every
+    stamp, because in Pango a stamp is also the oplog's primary key and every
     replicated row's `hlc` column. `store/hlc.go`, `store/identity.go`,
     `sync/folder.go` and `sync/transport_auth.go` are all deliberately kept —
     `docs/SYNC.md` §11 now records the reason per file rather than as a blanket
@@ -38,7 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     remaining ~89% is the wazero runtime, so the increment is paid once and is
     nearly flat as more of the algebra is used.
   - No migration was required. The `oplog.cose` column and the `store.Merger`
-    interface already existed, and PropFix's op identity is its HLC stamp — not a
+    interface already existed, and Pango's op identity is its HLC stamp — not a
     UUID — so it does not disagree with the engine's content address.
 - `backend/internal/sync/classes.go` — which replicated table is a
   last-writer-wins register and which is add-only, as data, in one place read by
@@ -59,13 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   descriptions of running software:
   - `docs/GETTING-STARTED.md` — intended path from clone to first job, with a
     per-step status table.
-  - `docs/CONFIGURATION.md` — intended flags and `PROPFIX_*` environment
+  - `docs/CONFIGURATION.md` — intended flags and `PANGO_*` environment
     variables, each marked with its status.
   - `docs/SYNC.md` — deep protocol specification: HLC stamps, merge rules,
     append-only money, authority, stateless symmetric rounds, envelope
     authentication and its threat table, folder/USB transport, the merge-engine
     seam, and open questions.
-  - `docs/WRAP.md` — how PropFix maps onto the WRAP `trades/v0` profile for
+  - `docs/WRAP.md` — how Pango maps onto the WRAP `trades/v0` profile for
     cross-organisation work, including what must never cross the boundary.
   - `docs/INSPECTIONS.md` — templates, append-only findings, and the
     ingoing/outgoing comparison, including the "not captured ingoing" case.
@@ -74,7 +74,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     seven unmitigated residual risks.
   - `docs/SCREENSHOTS.md` — the shot list and screenshotter plan. No images
     exist and none are faked.
-  - `docs/FAQ.md` — starting with "Can I use PropFix today?" ("No").
+  - `docs/FAQ.md` — starting with "Can I use Pango today?" ("No").
 - `README.md` — with a status banner stating that the product is not usable
   today, and a feature table in which every row is marked *Designed*.
 - `site/index.html` and `site/docs.html` — hand-written marketing site and docs
@@ -86,7 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CONTRIBUTING.md` and `SECURITY.md`.
 
 - `conformance/hlc_vectors.json` + `conformance/README.md` — the HLC stamp
-  format, total order and tie-break rule pinned as data, so PropFix's HLC and
+  format, total order and tie-break rule pinned as data, so Pango's HLC and
   FlowStock's near-identical copy of it can be held to one rule instead of two
   drifting sets of hand-written tests. Run by
   `backend/internal/store/hlc_vectors_test.go`.
@@ -107,7 +107,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   conformance vectors; `docs/SYNC.md` §2 documents the rule.
 - **The WRAP conformance harness skipped silently.** It loads its vectors from a
   sibling `vul-os/wrap` checkout, which is usually absent, and a skipped Go test
-  prints nothing at all — so PropFix reported a green suite while verifying none
+  prints nothing at all — so Pango reported a green suite while verifying none
   of its WRAP claims. It now prints a banner naming every vector that went
   unverified, asserts that the vectors it claims to cover are present in the
   file and finished in the expected state, logs the file's SHA-256 for
@@ -159,14 +159,14 @@ where to look:
 | --- | --- |
 | The Go backend | `backend/` — 68 Go files across `api`, `domain`, `inspect`, `repo`, `report`, `store`, `sync`, `wrap`; `go build ./...` and `go test ./...` both pass |
 | The React frontend | `src/` — 47 modules, five routed pages, `npm run build` succeeds, 52 vitest tests pass |
-| Migrations | `backend/internal/store/migrations/` — `1_core`, `100_property`, `200_maintenance`, `201_job_number_dedupe`, `300_inspections`, `301_inspection_job_link`, applied by `store/migrate.go` |
+| Migrations | `backend/internal/store/migrations/` — `1_core`, `100_property`, `200_maintenance`, `300_inspections`, applied by `store/migrate.go` |
 | The HLC oplog | `backend/internal/store/hlc.go` + the `oplog` table in `1_core.sql`; vectors in `store/hlc_vectors_test.go` |
 | Peer sync | `backend/internal/sync/sync.go`, `apply.go`, `ops.go`, with `transport_auth.go` for peer authentication |
 | Folder transport | `backend/internal/sync/folder.go` (+ `folder_test.go`) |
-| WRAP support | `backend/internal/wrap/` — `cbor.go`, `kinds.go`, `object.go`, `propfix.go`, plus the `conformance/` vector harness |
+| WRAP support | `backend/internal/wrap/` — `cbor.go`, `kinds.go`, `object.go`, `pango.go`, plus the `conformance/` vector harness |
 | Inspections | `backend/internal/inspect/compare.go` and `src/pages/InspectionsPage.jsx` / `InspectionDetailPage.jsx`, including the ingoing/outgoing comparison endpoint |
 | Reporting | `backend/internal/report/report.go` and `src/pages/ReportsPage.jsx` |
-| Demo mode | `backend/cmd/propfix/demo.go` (347 lines of seed data) behind the `--demo` flag in `cmd/propfix/main.go` |
+| Demo mode | `backend/cmd/pango/demo.go` (347 lines of seed data) behind the `--demo` flag in `cmd/pango/main.go` |
 | The screenshotter | `scripts/screenshots.mjs` (and `scripts/qa-shots.mjs`), wired up as `npm run screenshots` |
 
-[Unreleased]: https://github.com/vul-os/propfix/commits/main
+[Unreleased]: https://github.com/vul-os/pango/commits/main

@@ -1,8 +1,8 @@
 # Configuration
 
 > [!WARNING]
-> **📐 Designed, not implemented.** No PropFix process reads any of these
-> settings today, because there is no PropFix process. This chapter specifies
+> **📐 Designed, not implemented.** No Pango process reads any of these
+> settings today, because there is no Pango process. This chapter specifies
 > the intended configuration surface so it can be reviewed and so it can be
 > implemented against a written target rather than invented per-flag.
 >
@@ -13,7 +13,7 @@
 These are constraints on the configuration system itself, taken from
 [ARCHITECTURE.md](ARCHITECTURE.md) §11.
 
-1. **No required config file.** A bare `./propfix` must be a working single-node
+1. **No required config file.** A bare `./pango` must be a working single-node
    deployment. Anything that must be configured before first run is a design
    failure.
 2. **No default outbound network calls.** Every network destination is something
@@ -30,7 +30,7 @@ These are constraints on the configuration system itself, taken from
 Intended order, highest wins:
 
 ```
-command-line flag  >  PROPFIX_* environment variable  >  built-in default
+command-line flag  >  PANGO_* environment variable  >  built-in default
 ```
 
 There is deliberately no config-file layer in the first cut. If one is added
@@ -41,12 +41,12 @@ same change.
 
 | Setting | Env | Flag | Default | Notes |
 |---|---|---|---|---|
-| Listen address | `PROPFIX_ADDR` | `--addr` | `127.0.0.1:8080` | Loopback by default. Binding to `0.0.0.0` is an explicit act. |
-| Data directory | `PROPFIX_DATA_DIR` | `--data-dir` | `.` | Holds the database and attachments. |
-| Database path | `PROPFIX_DB` | `--db` | `<data-dir>/propfix.db` | Created `0600`. |
-| Attachment store | `PROPFIX_ATTACHMENTS` | `--attachments` | `<data-dir>/attachments` | Content-addressed blobs. |
+| Listen address | `PANGO_ADDR` | `--addr` | `127.0.0.1:8099` | Loopback by default. Binding to `0.0.0.0` is an explicit act. |
+| Data directory | `PANGO_DATA_DIR` | `--data-dir` | `.` | Holds the database and attachments. |
+| Database path | `PANGO_DB` | `--db` | `<data-dir>/pango.db` | Created `0600`. |
+| Attachment store | `PANGO_ATTACHMENTS` | `--attachments` | `<data-dir>/attachments` | Content-addressed blobs. |
 | Demo mode | — | `--demo` | off | In-memory seeded dataset; **never** touches the database. Not a flag to run in production, and it refuses to start alongside `--db`. |
-| Log level | `PROPFIX_LOG_LEVEL` | `--log-level` | `info` | `debug` must still never print a secret. |
+| Log level | `PANGO_LOG_LEVEL` | `--log-level` | `info` | `debug` must still never print a secret. |
 
 ## Identity — 📐 Designed
 
@@ -56,7 +56,7 @@ HLC ties break on (see [SYNC.md](SYNC.md)).
 
 | Setting | Env | Default | Notes |
 |---|---|---|---|
-| Node key path | `PROPFIX_NODE_KEY` | `<data-dir>/node.key` | Generated if absent, mode `0600`. Losing it means the node must re-enrol with every peer. |
+| Node key path | `PANGO_NODE_KEY` | `<data-dir>/node.key` | Generated if absent, mode `0600`. Losing it means the node must re-enrol with every peer. |
 
 The node's id **is** its public key. This is deliberate: it means an HLC tie
 breaks on the same value whether the built-in engine or a substrate engine is
@@ -67,12 +67,12 @@ who wins a tie. See [ARCHITECTURE.md](ARCHITECTURE.md) §7.
 
 | Setting | Env | Default | Notes |
 |---|---|---|---|
-| Sync enabled | `PROPFIX_SYNC` | off | Off means the node is a standalone island, which is a perfectly good deployment. |
-| Pairing secret | `PROPFIX_SYNC_SECRET` | unset | **Bootstrap only.** Authorises trust-on-first-use enrolment of a key; it is not the ongoing gate. Never passed as a flag. |
-| Enrolled-peer secret fallback | `PROPFIX_SYNC_SECRET_FALLBACK` | **off** | With the default off, an enrolled peer presenting no valid signature is **rejected** — the mesh fails closed. |
-| Freshness window | `PROPFIX_SYNC_SKEW` | `300s` | Signed envelopes outside ±window are rejected. |
-| Sync folder | `PROPFIX_SYNC_FOLDER` | unset | A shared folder / NAS mount / USB path used as transport. Each node writes only its own `ops-<node>.jsonl`. |
-| Sync interval | `PROPFIX_SYNC_INTERVAL` | `60s` | Background round per enabled peer. |
+| Sync enabled | `PANGO_SYNC` | off | Off means the node is a standalone island, which is a perfectly good deployment. |
+| Pairing secret | `PANGO_SYNC_SECRET` | unset | **Bootstrap only.** Authorises trust-on-first-use enrolment of a key; it is not the ongoing gate. Never passed as a flag. |
+| Enrolled-peer secret fallback | `PANGO_SYNC_SECRET_FALLBACK` | **off** | With the default off, an enrolled peer presenting no valid signature is **rejected** — the mesh fails closed. |
+| Freshness window | `PANGO_SYNC_SKEW` | `300s` | Signed envelopes outside ±window are rejected. |
+| Sync folder | `PANGO_SYNC_FOLDER` | unset | A shared folder / NAS mount / USB path used as transport. Each node writes only its own `ops-<node>.jsonl`. |
+| Sync interval | `PANGO_SYNC_INTERVAL` | `60s` | Background round per enabled peer. |
 
 With no secret set **and** no enrolled key, every sync request is rejected.
 Unenrolled peers are rejected by default.
@@ -81,8 +81,8 @@ Unenrolled peers are rejected by default.
 
 | Setting | Env | Flag | Default | Notes |
 |---|---|---|---|---|
-| Merge engine | `PROPFIX_MERGER` | `--merge-engine` | `builtin` | `builtin` = the HLC oplog engine. `substrate` (alias `dmtap`) = the shared DMTAP-SYNC algebra, `github.com/vul-os/kotva/bindings/go`, installed through the `store.Merger` seam. |
-| Wasm compile cache | `PROPFIX_WASM_CACHE` | — | unset | Directory for wazero's compiled machine code. Optional; without it the engine recompiles on every boot, costing a few hundred milliseconds once per process. |
+| Merge engine | `PANGO_MERGER` | `--merge-engine` | `builtin` | `builtin` = the HLC oplog engine. `substrate` (alias `dmtap`) = the shared DMTAP-SYNC algebra, `github.com/vul-os/kotva/bindings/go`, installed through the `store.Merger` seam. |
+| Wasm compile cache | `PANGO_WASM_CACHE` | — | unset | Directory for wazero's compiled machine code. Optional; without it the engine recompiles on every boot, costing a few hundred milliseconds once per process. |
 
 The flag overrides the env var. An **unrecognised value is fatal**, not
 defaulted: a typo in a deployment script that quietly ran the other algebra is
@@ -112,8 +112,8 @@ conformance vectors.
 
 | Setting | Env | Default | Notes |
 |---|---|---|---|
-| WRAP enabled | `PROPFIX_WRAP` | off | In-house maintenance never touches WRAP. |
-| Pool endpoints | `PROPFIX_WRAP_POOLS` | unset | Comma-separated pool URLs. A pool distributes offers; it has no authority over assignment. |
+| WRAP enabled | `PANGO_WRAP` | off | In-house maintenance never touches WRAP. |
+| Pool endpoints | `PANGO_WRAP_POOLS` | unset | Comma-separated pool URLs. A pool distributes offers; it has no authority over assignment. |
 
 See [WRAP.md](WRAP.md).
 
@@ -125,9 +125,9 @@ and is absent — not degraded, not broken — when it is not.
 
 | Seam | Env | Default | If unset |
 |---|---|---|---|
-| Relay reachability | `PROPFIX_RELAY_URL` | unset | No relay is contacted. Peers reach each other directly, over a folder, or not at all. |
-| Vulos OS host mode | `PROPFIX_DEPLOY_MODE` | `standalone` | `os` lets the Vulos OS supply identity and scoped storage in front of the same binary. |
-| Map tiles | `PROPFIX_TILES_URL` | unset | Maps render without a basemap. MapLibre + Protomaps need **no API key**, and tiles can be served from a local file. |
+| Relay reachability | `PANGO_RELAY_URL` | unset | No relay is contacted. Peers reach each other directly, over a folder, or not at all. |
+| Vulos OS host mode | `PANGO_DEPLOY_MODE` | `standalone` | `os` lets the Vulos OS supply identity and scoped storage in front of the same binary. |
+| Map tiles | `PANGO_TILES_URL` | unset | Maps render without a basemap. MapLibre + Protomaps need **no API key**, and tiles can be served from a local file. |
 
 ## What is intentionally absent
 

@@ -1,6 +1,6 @@
 # Security audit — repository merge
 
-Record of the secret scan performed when four PropFix repositories were merged
+Record of the secret scan performed when four Pango repositories were merged
 into this one, and what was removed. Dated 2026-07-20.
 
 ## ⚠️ Action required: revoke these credentials
@@ -12,11 +12,11 @@ here. Cloning, forking, and GitHub's own caches mean the material may persist
 even after the source repositories are deleted.
 
 Two Google Cloud **service-account private keys** were committed in plaintext
-and were present at `HEAD` of `propfix-backend-go`:
+and were present at `HEAD` of `pango-backend-go`:
 
 | File | GCP project | Private key ID |
 |---|---|---|
-| `keyfile.json` | `propfix` | `d24455062861d89d9e5753eeca9c483a46399c27` |
+| `keyfile.json` | `pango` | `d24455062861d89d9e5753eeca9c483a46399c27` |
 | `firebase-keyfile.json` | `prop-fix` | `dbf18a7268b14ee19e3d6642ed05ad84a145d673` |
 
 These grant whatever IAM roles were bound to those service accounts. They must
@@ -41,11 +41,11 @@ this document. All were in `backend/internal/server/server.go`, hardcoded in
 
 | Credential | Detail | Action |
 |---|---|---|
-| **Mailgun API key** | prefix `787a7e4f…`, domain `mail.propfix.co`, sender `noreply@mail.propfix.co` | Revoke in Mailgun → Sending → API keys. Check sending logs for abuse; a leaked key sends mail as your domain and burns its reputation. |
+| **Mailgun API key** | prefix `787a7e4f…`, domain `mail.pango.co`, sender `noreply@mail.pango.co` | Revoke in Mailgun → Sending → API keys. Check sending logs for abuse; a leaked key sends mail as your domain and burns its reputation. |
 | **Neon Postgres** | host `ep-autumn-math-44120355.us-east-2.aws.neon.tech`, database `neondb`, user `exolutiontech`, **two** distinct passwords over time | Rotate the role password or delete the Neon project. Check for unexpected connections. |
 
 A leaked mail-sending key is worth treating as urgently as a database
-credential: it allows sending authenticated mail as `propfix.co`, which means
+credential: it allows sending authenticated mail as `pango.co`, which means
 phishing under your own domain and lasting deliverability damage.
 
 ### Supabase project (separate system — not covered by GCP deletion)
@@ -92,11 +92,11 @@ would recreate the exposure the document exists to record.
 ## What was removed from history
 
 **Service-account keyfiles** — `keyfile.json` and `firebase-keyfile.json`
-removed from every commit in `propfix-backend-go` via `git filter-repo`
+removed from every commit in `pango-backend-go` via `git filter-repo`
 (3 blob versions across 297 commits).
 
 **Firebase Web API keys** — three `AIza…` values replaced with
-`***REMOVED-FIREBASE-WEB-KEY***` throughout `propfix-frontend-react` history
+`***REMOVED-FIREBASE-WEB-KEY***` throughout `pango-frontend-react` history
 (16 blobs affected), last seen in `src/contexts/auth.js`.
 
 These are a lower severity: Firebase Web API keys are *public identifiers by

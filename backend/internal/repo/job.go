@@ -16,7 +16,7 @@ package repo
 // organisation — from each raising the FIRST job against a building neither has
 // synced yet, both offline, both minting number 1. That collision is resolved at
 // the point it becomes visible — when the two rows actually meet during
-// sync — by store/migrations/201_job_number_dedupe.sql's trigger, not here: it
+// sync — by store/migrations/200_maintenance.sql's trigger, not here: it
 // bumps whichever of the two is causally later to a fresh number the moment
 // both are present in one database, deterministically, on every node that ends
 // up holding both. See docs/SYNC.md "Job numbers under divergence".
@@ -26,8 +26,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const jobCols = `id, org_id, building_id, unit_id, number, title, description, status,
@@ -116,7 +116,7 @@ func (r *Repo) CreateJob(orgID string, j domain.Job, unitLabel string) (domain.J
 // node's own point of view. It has no way to see a number a different,
 // currently-offline node has already allocated for the same building; that is
 // reconciled later, only if it actually happens, by the trigger in
-// store/migrations/201_job_number_dedupe.sql when the two rows meet.
+// store/migrations/200_maintenance.sql when the two rows meet.
 func nextJobNumber(tx *sql.Tx, buildingID string) (int64, error) {
 	if _, err := tx.Exec(
 		`INSERT INTO job_number_seq (building_id, next) VALUES (?, 1)

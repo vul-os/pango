@@ -10,7 +10,7 @@
  *   npm run qa-shots
  *   QA_OUT=/tmp/shots npm run qa-shots
  *
- * Same honesty guard as scripts/screenshots.mjs: if the propfix binary does
+ * Same honesty guard as scripts/screenshots.mjs: if the pango binary does
  * not yet serve the app UI, this prints why and exits non-zero without
  * writing anything.
  */
@@ -23,13 +23,13 @@ import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = resolve(__dirname, '..')
-const BIN = join(ROOT, 'backend', 'propfix')
-const PORT = process.env.PROPFIX_SCREENSHOT_PORT || 28899
+const BIN = join(ROOT, 'backend', 'pango')
+const PORT = process.env.PANGO_SCREENSHOT_PORT || 28899
 const BASE_URL = `http://127.0.0.1:${PORT}`
 const OUT = process.env.QA_OUT || join(ROOT, 'qa-shots')
 const WIDTHS = [760, 1100, 1520]
 const HEIGHT = 960
-const DEMO_EMAIL = 'demo@propfix.local'
+const DEMO_EMAIL = 'demo@pango.local'
 const DEMO_PASSWORD = 'demopassword'
 
 const ROUTES = [
@@ -53,7 +53,7 @@ async function health() {
   }
 }
 
-function newestMtime(path, ignored = new Set(['node_modules', 'dist', '.git', 'propfix'])) {
+function newestMtime(path, ignored = new Set(['node_modules', 'dist', '.git', 'pango'])) {
   if (!existsSync(path)) return 0
   const st = statSync(path)
   if (!st.isDirectory()) return st.mtimeMs
@@ -69,22 +69,22 @@ function ensureBinary() {
   const sources = ['src', 'backend', 'index.html', 'package.json', 'vite.config.js'].map((p) => join(ROOT, p))
   const srcAge = Math.max(...sources.map((p) => newestMtime(p)))
   if (existsSync(BIN) && statSync(BIN).mtimeMs >= srcAge) return
-  console.log('  building propfix (frontend + site embedded)…')
+  console.log('  building pango (frontend + site embedded)…')
   execSync('npm run build:all', { cwd: ROOT, stdio: 'inherit' })
 }
 
 async function ensureServer() {
   const running = await health()
   if (running?.demo) {
-    console.log(`  reusing running propfix --demo instance at ${BASE_URL}`)
+    console.log(`  reusing running pango --demo instance at ${BASE_URL}`)
     return async () => {}
   }
   if (running) {
-    throw new Error(`something non-demo is already listening on ${BASE_URL} — set PROPFIX_SCREENSHOT_PORT`)
+    throw new Error(`something non-demo is already listening on ${BASE_URL} — set PANGO_SCREENSHOT_PORT`)
   }
 
   ensureBinary()
-  console.log(`  starting propfix --demo on ${BASE_URL}…`)
+  console.log(`  starting pango --demo on ${BASE_URL}…`)
   const proc = spawn(BIN, ['--demo', '--addr', `127.0.0.1:${PORT}`], {
     cwd: ROOT,
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -99,13 +99,13 @@ async function ensureServer() {
 
   const deadline = Date.now() + 20_000
   while (Date.now() < deadline) {
-    if (exited !== null) throw new Error(`propfix exited early (code ${exited}):\n${logs.join('')}`)
+    if (exited !== null) throw new Error(`pango exited early (code ${exited}):\n${logs.join('')}`)
     if (await health()) break
     await sleep(100)
   }
   if (!(await health())) {
     proc.kill('SIGTERM')
-    throw new Error(`propfix did not become ready on ${BASE_URL}:\n${logs.join('')}`)
+    throw new Error(`pango did not become ready on ${BASE_URL}:\n${logs.join('')}`)
   }
   return async () => {
     proc.kill('SIGTERM')
@@ -119,7 +119,7 @@ async function assertAppIsServed() {
   const res = await fetch(`${BASE_URL}/login`)
   const body = await res.text()
   if (res.ok && /<div id="root">/.test(body)) return
-  console.error('\nqa-shots: the propfix binary does not serve the app UI yet.')
+  console.error('\nqa-shots: the pango binary does not serve the app UI yet.')
   console.error(`  GET ${BASE_URL}/login -> ${res.status}, body did not look like the React app shell.`)
   console.error('  See scripts/screenshots.mjs\'s header comment for why. No shots were written.\n')
   throw new Error('app UI not served')
@@ -149,7 +149,7 @@ async function run() {
             deviceScaleFactor: 1,
             colorScheme: theme,
           })
-          await ctx.addInitScript((t) => localStorage.setItem('propfix.theme', t), theme)
+          await ctx.addInitScript((t) => localStorage.setItem('pango.theme', t), theme)
           const page = await ctx.newPage()
 
           let authed = false

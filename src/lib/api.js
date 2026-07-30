@@ -1,4 +1,4 @@
-// Thin fetch wrapper over PropFix's HTTP API (backend/internal/api).
+// Thin fetch wrapper over Pango's HTTP API (backend/internal/api).
 //
 // Two things matter here because the backend enforces them:
 //  - the session cookie is HttpOnly, so every call needs `credentials:
@@ -26,7 +26,7 @@ async function request(path, { method = 'GET', body, signal } = {}) {
       signal,
     })
   } catch {
-    throw new ApiError(0, 'Could not reach the PropFix server. Check the node is running and reachable.')
+    throw new ApiError(0, 'Could not reach the Pango server. Check the node is running and reachable.')
   }
 
   const text = await res.text()

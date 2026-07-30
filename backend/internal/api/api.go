@@ -1,4 +1,4 @@
-// Package api is PropFix's HTTP surface: chi routes, JSON bodies, and the
+// Package api is Pango's HTTP surface: chi routes, JSON bodies, and the
 // authentication middleware that decides which organisation a request is
 // scoped to.
 //
@@ -22,14 +22,14 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/repo"
-	"github.com/vul-os/propfix/backend/internal/report"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/repo"
+	"github.com/vul-os/pango/backend/internal/report"
 )
 
 // SessionCookie is the cookie the browser client uses. Tokens are also accepted
 // as a bearer header so a script or a tablet app does not need a cookie jar.
-const SessionCookie = "propfix_session"
+const SessionCookie = "pango_session"
 
 // ctxKey is unexported so nothing outside this package can write the
 // authenticated user into a request context. That is the whole isolation

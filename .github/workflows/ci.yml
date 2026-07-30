@@ -8,14 +8,16 @@
 #     build` now succeeds, so that note is gone. It is still NOT wrapped in
 #     continue-on-error: a green frontend job must mean the app actually
 #     builds.
-#   - The frontend job's `lint` step DOES currently fail (7 eslint errors in
-#     src/, pre-existing). It is deliberately not wrapped in continue-on-error
-#     either — fix the lint errors rather than silencing the step.
+#   - The frontend job's `lint` step used to fail (7 eslint errors in src/,
+#     pre-existing). Those are fixed at the source (see scripts/check.sh's
+#     header) and `npm run lint` is green as of this commit.
 #   - There is no e2e job yet. e2e/ contains a real Playwright harness
-#     (global-setup builds the actual binary), but every spec is currently
-#     skipped: the compiled binary has no //go:embed for the built app and
-#     main.go registers no "/" route, so there is nothing running for
-#     Playwright to drive. Wire a `test-e2e` job in here once that lands.
+#     (global-setup builds the actual binary with the app embedded), and its
+#     specs now run rather than skip — the //go:embed for the built app and
+#     main.go's "/" route both landed. `npx playwright test` is 4/5 green;
+#     the remaining failure (jobs-board.spec.js's search filter) is a real
+#     product gap, not a harness problem — see that spec's inline note. Wire
+#     a `test-e2e` job in here once that gap is resolved.
 #   - No release job lives here — see release.yml, which is tag-triggered.
 
 name: CI

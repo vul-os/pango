@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 // newSignedOpsRequest builds a real, correctly-signed POST /api/sync/ops

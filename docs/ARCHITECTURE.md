@@ -4,7 +4,7 @@
 it before changing anything structural, and change it deliberately rather than
 letting the code drift away from it.
 
-## 1. What PropFix is
+## 1. What Pango is
 
 Building maintenance and inspection software for people who manage property —
 managing agents, landlords with a portfolio, body corporates, facilities teams.
@@ -36,7 +36,7 @@ Two products in one, and the second is the differentiator:
 5. **No hard dependency on relay, control plane, or DMTAP.** Optional seams
    only. Required by `VULOS-PRODUCT-STANDARD.md`.
 6. **Cross-organisation work goes over WRAP** (§8), so a contractor running
-   their own PropFix node is a first-class participant rather than a login on
+   their own Pango node is a first-class participant rather than a login on
    somebody else's system.
 
 ## 3. Stack
@@ -162,7 +162,7 @@ trail is therefore complete by construction.
 Work that leaves the organisation goes over **WRAP** (`trades/v0`), the open
 work-coordination protocol. See `github.com/vul-os/wrap`.
 
-| PropFix | WRAP |
+| Pango | WRAP |
 |---|---|
 | Managing agent / landlord | **Issuer** |
 | In-house staff | Performer via direct offer (`mode = 0`) |
@@ -173,7 +173,7 @@ work-coordination protocol. See `github.com/vul-os/wrap`.
 | Job events | `Progress` |
 | Sign-off | `Attestation` |
 
-The point: a plumbing company runs **its own** PropFix node and receives work
+The point: a plumbing company runs **its own** Pango node and receives work
 orders from a managing agent's node. No platform sits between the landlord and
 the plumber, and no one takes a cut.
 
@@ -183,7 +183,7 @@ WRAP is **optional**. In-house maintenance never touches it.
 
 ```
 backend/
-  cmd/propfix/        entrypoint, site embed, flags
+  cmd/pango/        entrypoint, site embed, flags
   internal/
     store/            SQLite, migrations, HLC, oplog, Merger seam
     domain/           entities and invariants — no SQL, no HTTP
@@ -220,7 +220,7 @@ list read as a changelog.
 
 ## 12. Demo mode
 
-`propfix --demo` seeds an in-memory dataset so the UI is fully browsable with
+`pango --demo` seeds an in-memory dataset so the UI is fully browsable with
 no database, no configuration and no signup. It is what the screenshotter runs
 against, and it is the first thing a new contributor sees.
 

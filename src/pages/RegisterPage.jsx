@@ -44,10 +44,10 @@ export default function RegisterPage() {
     return (
       <AuthLayout
         title="Registration is closed"
-        subtitle="This PropFix node already belongs to an organisation."
+        subtitle="This Pango node already belongs to an organisation."
       >
         <p className="text-sm text-ink-muted">
-          A PropFix node registers exactly one organisation, on the first account created.
+          A Pango node registers exactly one organisation, on the first account created.
           That has already happened here — ask whoever set this node up for an invitation,
           or sign in if the account is yours.
         </p>
@@ -63,7 +63,7 @@ export default function RegisterPage() {
   return (
     <AuthLayout
       title="Set up this node"
-      subtitle="Runs once — the first account you create here owns this PropFix node."
+      subtitle="Runs once — the first account you create here owns this Pango node."
       footer={
         <>
           Already set up?{' '}

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PropFix</title>
+    <title>Pango</title>
     <meta
       name="description"
       content="Building maintenance and inspections you actually own."
@@ -17,7 +17,7 @@
       // light/dark flash. Mirrors src/lib/theme.js.
       (function () {
         try {
-          var t = localStorage.getItem('propfix.theme') || 'system'
+          var t = localStorage.getItem('pango.theme') || 'system'
           if (t === 'system') {
             t = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
           }

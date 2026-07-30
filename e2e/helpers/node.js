@@ -1,8 +1,8 @@
 /**
- * PropFix E2E node harness.
+ * Pango E2E node harness.
  *
  * Every test is meant to drive the REAL Go binary: a single self-contained
- * `propfix` process with the frontend embedded, pointed at a throwaway data
+ * `pango` process with the frontend embedded, pointed at a throwaway data
  * dir and a free port. Nothing mocked, nothing shared between tests, so
  * specs can run in parallel. Mirrors flowstock's e2e/helpers/node.js.
  *
@@ -20,7 +20,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const ROOT = resolve(__dirname, '..', '..')
-export const BIN = process.env.PROPFIX_BIN || join(ROOT, 'backend', 'propfix')
+export const BIN = process.env.PANGO_BIN || join(ROOT, 'backend', 'pango')
 
 /** Ask the OS for a free port. */
 async function freePort() {
@@ -35,12 +35,12 @@ async function freePort() {
 }
 
 /**
- * A running PropFix instance plus a thin API client for it. The client is
+ * A running Pango instance plus a thin API client for it. The client is
  * used for arrange/assert steps that are not the subject of a test (seeding
  * via demo mode, reading back a job); flows under test are driven through
  * the browser once there is a UI to drive.
  */
-export class PropFixNode {
+export class PangoNode {
   constructor({ port, dataDir, proc }) {
     this.port = port
     this.dataDir = dataDir
@@ -53,18 +53,18 @@ export class PropFixNode {
   static async start(opts = {}) {
     if (!existsSync(BIN)) {
       throw new Error(
-        `propfix binary not found at ${BIN} — run \`npm run build:all\` (global setup does this automatically)`,
+        `pango binary not found at ${BIN} — run \`npm run build:all\` (global setup does this automatically)`,
       )
     }
     const port = opts.port || (await freePort())
     const demo = opts.demo !== false
-    const dataDir = demo ? null : opts.dataDir || mkdtempSync(join(tmpdir(), 'propfix-e2e-'))
+    const dataDir = demo ? null : opts.dataDir || mkdtempSync(join(tmpdir(), 'pango-e2e-'))
 
     const args = ['-addr', `127.0.0.1:${port}`]
     if (demo) {
       args.push('-demo')
     } else {
-      args.push('-db', join(dataDir, 'propfix.db'))
+      args.push('-db', join(dataDir, 'pango.db'))
     }
 
     const proc = spawn(BIN, args, {
@@ -72,7 +72,7 @@ export class PropFixNode {
       env: { ...process.env, ...(opts.env || {}) },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
-    const node = new PropFixNode({ port, dataDir, proc })
+    const node = new PangoNode({ port, dataDir, proc })
     proc.stdout.on('data', (d) => node.logs.push(String(d)))
     proc.stderr.on('data', (d) => node.logs.push(String(d)))
     proc.on('exit', (code) => {
@@ -86,7 +86,7 @@ export class PropFixNode {
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
       if (this.exited !== undefined) {
-        throw new Error(`propfix exited early (code ${this.exited}):\n${this.logs.join('')}`)
+        throw new Error(`pango exited early (code ${this.exited}):\n${this.logs.join('')}`)
       }
       try {
         const res = await fetch(`${this.baseURL}/api/health`)
@@ -96,7 +96,7 @@ export class PropFixNode {
       }
       await new Promise((r) => setTimeout(r, 50))
     }
-    throw new Error(`propfix did not become ready on ${this.baseURL}:\n${this.logs.join('')}`)
+    throw new Error(`pango did not become ready on ${this.baseURL}:\n${this.logs.join('')}`)
   }
 
   async stop() {
@@ -108,7 +108,7 @@ export class PropFixNode {
       }
       if (this.exited === undefined) this.proc.kill('SIGKILL')
     }
-    if (this.dataDir && !process.env.PROPFIX_KEEP_DATA) {
+    if (this.dataDir && !process.env.PANGO_KEEP_DATA) {
       rmSync(this.dataDir, { recursive: true, force: true })
     }
   }

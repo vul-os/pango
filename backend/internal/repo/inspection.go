@@ -12,8 +12,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const inspectionCols = `id, org_id, building_id, unit_id, template_id, job_id, kind, status,
@@ -105,7 +105,7 @@ func (r *Repo) CreateInspection(orgID string, i domain.Inspection, unitLabel str
 // handleCompletion() set nothing and rejected nothing, so a completed
 // inspection could still be edited underneath the record that was supposed to
 // be final — which defeats the entire evidentiary point of a move-out capture.
-// The only way PropFix corrects a completed inspection is the same way it
+// The only way Pango corrects a completed inspection is the same way it
 // corrects a finding: a new inspection, never a mutation of the old one.
 func (r *Repo) SetInspectionStatus(orgID, id, status string) (domain.Inspection, error) {
 	i, err := r.GetInspection(orgID, id)

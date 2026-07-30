@@ -5,7 +5,7 @@ package sync
 //
 // Every sync request carries a signature over a canonical envelope — method,
 // path, body hash, timestamp and nonce — made with the caller's node identity
-// key. Because a PropFix node's id IS its public key (ARCHITECTURE.md §7),
+// key. Because a Pango node's id IS its public key (ARCHITECTURE.md §7),
 // there is no separate "node id" to look up: the header that carries the
 // caller's claimed identity is the same key the signature is verified
 // against, and enrolment is a row in the `peer` table keyed by that pubkey.
@@ -43,7 +43,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vul-os/propfix/backend/internal/store"
+	"github.com/vul-os/pango/backend/internal/store"
 )
 
 const (

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =============================================================================
-# scripts/verify.sh — verify a downloaded Propfix release artifact, fail-closed.
+# scripts/verify.sh — verify a downloaded Pango release artifact, fail-closed.
 #
 # COPY THIS FILE. It is a template, not a shared dependency. It has no imports,
 # no sourced helpers and no sibling scripts: `curl` and one of `sha256sum` /
@@ -48,7 +48,7 @@
 #
 #  4. NO SUBSTRING / REGEX NAME MATCH. The artifact name is compared with awk
 #     against FIELD 2 of the manifest, as a string. A substring grep treats the
-#     name as a regex — every "." in "propfix-windows-amd64.exe" is a wildcard
+#     name as a regex — every "." in "pango-windows-amd64.exe" is a wildcard
 #     — and would happily return the digest of "...tar.gz.sig", or of a
 #     differently-punctuated asset. The selftest plants exactly those two traps.
 #
@@ -76,9 +76,9 @@
 #
 # USAGE
 # ─────
-#   scripts/verify.sh --tag v0.1.0 propfix-linux-amd64
-#   scripts/verify.sh --tag v0.1.0 --attest propfix-linux-amd64
-#   scripts/verify.sh --repo vul-os/propfix --tag v0.1.0 --out ~/Downloads ASSET
+#   scripts/verify.sh --tag v0.1.0 pango-linux-amd64
+#   scripts/verify.sh --tag v0.1.0 --attest pango-linux-amd64
+#   scripts/verify.sh --repo vul-os/pango --tag v0.1.0 --out ~/Downloads ASSET
 #   scripts/verify.sh --base-url https://example.com/rel ASSET       # any origin
 #   scripts/verify.sh --dir ./release-out ASSET...   # already downloaded
 #   scripts/verify.sh --selftest                     # prove the guards refuse
@@ -92,7 +92,7 @@
 set -euo pipefail
 
 # ── Things a copying repo changes ────────────────────────────────────────────
-DEFAULT_REPO="vul-os/propfix"
+DEFAULT_REPO="vul-os/pango"
 MANIFEST="SHA256SUMS"
 HTTP_TIMEOUT="${VERIFY_HTTP_TIMEOUT:-120}"
 
@@ -275,7 +275,7 @@ done
 TMPDIR_V=""
 cleanup() { [ -n "$TMPDIR_V" ] && rm -rf -- "$TMPDIR_V"; return 0; }
 trap cleanup EXIT
-TMPDIR_V="$(mktemp -d "${TMPDIR:-/tmp}/propfix-verify.XXXXXX")"
+TMPDIR_V="$(mktemp -d "${TMPDIR:-/tmp}/pango-verify.XXXXXX")"
 
 # =============================================================================
 # The verifier
@@ -527,8 +527,8 @@ write_origin_server() {
 import hashlib, sys, threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-ART   = "propfix-windows-amd64.exe"
-GOOD  = b"propfix-binary-bytes\n" * 64
+ART   = "pango-windows-amd64.exe"
+GOOD  = b"pango-binary-bytes\n" * 64
 OTHER = b"tampered-substituted-bytes!!!\n" * 64
 HTML  = (b"<!DOCTYPE html><html><head><title>404 Not Found</title></head>"
          b"<body><h1>Not Found</h1></body></html>")
@@ -577,7 +577,7 @@ add("noentry", ART,          200, "application/gzip", GOOD)
 #     - "...tar.gz.sig"      would be hit by a substring grep
 #     - "...v9X9X9-dist..."  would be hit by a regex where '.' is a wildcard
 trap_sums = (line(ART + ".sig", OTHER) +
-             line("propfix-windows-amd64Xexe", OTHER)).encode()
+             line("pango-windows-amd64Xexe", OTHER)).encode()
 add("regextrap", "SHA256SUMS", 200, "text/plain", trap_sums)
 add("regextrap", ART,          200, "application/gzip", GOOD)
 
@@ -693,7 +693,7 @@ run_selftest() {
   [ -n "$port" ] || die 1 "synthetic origin failed to start:" "$(cat "$logf" || true)"
 
   local base="http://127.0.0.1:${port}"
-  local art="propfix-windows-amd64.exe"
+  local art="pango-windows-amd64.exe"
   local outd="${TMPDIR_V}/dl"
   mkdir -p "$outd"
 
@@ -746,7 +746,7 @@ run_selftest() {
     p="$(command -v "$t" 2>/dev/null || true)"
     [ -n "$p" ] && ln -sf "$p" "${fakebin}/${t}"
   done
-  expect_exit "--attest but no gh installed"  "$E_ATTEST"         yes -- env PATH="$fakebin" "$bash_abs" "$SELF_PATH" --out "$outd" --attest --repo vul-os/propfix --base-url "$base/good" "$art"
+  expect_exit "--attest but no gh installed"  "$E_ATTEST"         yes -- env PATH="$fakebin" "$bash_abs" "$SELF_PATH" --out "$outd" --attest --repo vul-os/pango --base-url "$base/good" "$art"
 
   printf '\n'
   if [ "$SELFTEST_FAILURES" -ne 0 ]; then

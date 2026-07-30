@@ -1,12 +1,12 @@
 # FAQ
 
-## Can I use PropFix today?
+## Can I use Pango today?
 
 **No.** It is being rebuilt from scratch and there is no runnable software: no
 binary, no release, no image, no UI. What exists is the design contract in
 [ARCHITECTURE.md](ARCHITECTURE.md) and this documentation set.
 
-If you came here looking for maintenance software to deploy this month, PropFix
+If you came here looking for maintenance software to deploy this month, Pango
 is not it yet. Come back, or better, read the architecture and tell us where it
 is wrong.
 
@@ -30,7 +30,7 @@ unresolved.
 
 ## Is there a hosted version? A free tier? A price?
 
-There is no hosted PropFix, no account with us, no free tier, and no price,
+There is no hosted Pango, no account with us, no free tier, and no price,
 because there is nothing to sell you. It is MIT-licensed software you run.
 
 Vulos publishes one thing: the OS, free and open-source, dual MIT OR
@@ -41,7 +41,7 @@ and no app-store subscription.
 ## Do I need Vulos anything to run it?
 
 No. A hard runtime dependency on Ephor, a control plane, or DMTAP is
-**forbidden** by the product standard. They are optional seams. A PropFix node
+**forbidden** by the product standard. They are optional seams. A Pango node
 with none of them configured is a complete deployment, not a degraded one.
 
 ## Does it phone home?
@@ -87,7 +87,7 @@ compromise.
 
 ## Is my sync traffic encrypted?
 
-**Not by PropFix.** Mutual Ed25519 signatures authenticate peers; they do not
+**Not by Pango.** Mutual Ed25519 signatures authenticate peers; they do not
 encrypt the payload. Run sync over a LAN, a VPN/overlay you control, or TLS you
 terminate. A relay tunnel buys reachability, not confidentiality — it terminates
 TLS and can see what passes through. See [THREAT-MODEL.md](THREAT-MODEL.md).
@@ -101,8 +101,8 @@ full-disk encryption — it is the OS's job and the OS does it better.
 ## What is WRAP, and do I have to use it?
 
 [WRAP](https://github.com/vul-os/wrap) is an open work-coordination protocol.
-PropFix uses its `trades/v0` profile so a contractor can run **their own**
-PropFix node and receive work orders from a managing agent's node — no platform
+Pango uses its `trades/v0` profile so a contractor can run **their own**
+Pango node and receive work orders from a managing agent's node — no platform
 between the landlord and the plumber, and nobody taking a cut.
 
 It is **optional** and off by default. In-house maintenance never touches it.
@@ -123,7 +123,7 @@ from "**not captured ingoing**" and does not present a missing baseline as
 evidence of damage.
 
 Fair wear and tear is a legal judgement that varies by jurisdiction and lease.
-Software asserting it would be confidently wrong. A human decides; PropFix makes
+Software asserting it would be confidently wrong. A human decides; Pango makes
 the evidence comparable. See [INSPECTIONS.md](INSPECTIONS.md).
 
 ## Why Go and SQLite?
@@ -139,7 +139,7 @@ The frontend is a web app and the field device is a tablet browser. A native app
 is not planned. Offline capture is a requirement of the web app, not a reason
 for a second codebase.
 
-## Can I run PropFix on a Vulos OS box?
+## Can I run Pango on a Vulos OS box?
 
 That is the intent — the **same binary**, with the OS wiring identity and scoped
 storage in front of it. Self-hosting it yourself remains the default path and is

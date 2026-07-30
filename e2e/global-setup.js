@@ -2,13 +2,13 @@
  * Builds the single self-contained binary (frontend + site embedded) once,
  * before the suite runs, so every spec exercises exactly what ships. Mirrors
  * flowstock's e2e/global-setup.js: rebuilds are skipped when the binary is
- * already newer than every source file. Set PROPFIX_SKIP_BUILD=1 to
- * force-skip, or point PROPFIX_BIN at a prebuilt binary (CI can build it as
+ * already newer than every source file. Set PANGO_SKIP_BUILD=1 to
+ * force-skip, or point PANGO_BIN at a prebuilt binary (CI can build it as
  * its own step).
  *
- * This step itself works today (`npm run build:all` succeeds and produces
- * backend/propfix) — what it produces does not yet serve the app UI. See
- * playwright.config.js for why every spec is skipped regardless.
+ * `npm run build:all` succeeds and produces backend/pango, which now serves
+ * the app UI (embed_frontend build tag) as well as the API and marketing
+ * site. See playwright.config.js for current spec status.
  */
 
 import { execSync } from 'child_process'
@@ -18,7 +18,7 @@ import { BIN, ROOT } from './helpers/node.js'
 
 const SOURCE_DIRS = ['src', 'backend']
 const SOURCE_FILES = ['index.html', 'package.json', 'vite.config.js', 'tailwind.config.js']
-const IGNORED = new Set(['node_modules', 'dist', '.git', 'propfix'])
+const IGNORED = new Set(['node_modules', 'dist', '.git', 'pango'])
 
 function newestMtime(path) {
   if (!existsSync(path)) return 0
@@ -33,9 +33,9 @@ function newestMtime(path) {
 }
 
 export default function globalSetup() {
-  if (process.env.PROPFIX_SKIP_BUILD === '1') {
+  if (process.env.PANGO_SKIP_BUILD === '1') {
     if (!existsSync(BIN)) {
-      throw new Error(`PROPFIX_SKIP_BUILD=1 but no binary at ${BIN}`)
+      throw new Error(`PANGO_SKIP_BUILD=1 but no binary at ${BIN}`)
     }
     return
   }
@@ -47,11 +47,11 @@ export default function globalSetup() {
       ...SOURCE_FILES.map((f) => newestMtime(join(ROOT, f))),
     )
     if (binAge >= srcAge) {
-      console.log('e2e: reusing up-to-date propfix binary')
+      console.log('e2e: reusing up-to-date pango binary')
       return
     }
   }
 
-  console.log('e2e: building propfix (frontend + site embedded)…')
+  console.log('e2e: building pango (frontend + site embedded)…')
   execSync('npm run build:all', { cwd: ROOT, stdio: 'inherit' })
 }

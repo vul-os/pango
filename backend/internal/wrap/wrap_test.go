@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/vul-os/propfix/backend/internal/domain"
+	"github.com/vul-os/pango/backend/internal/domain"
 )
 
 func genKey(t *testing.T) (ed25519.PublicKey, ed25519.PrivateKey) {

@@ -1,6 +1,6 @@
-// Package wrap implements PropFix's binding to WRAP (github.com/vul-os/wrap),
+// Package wrap implements Pango's binding to WRAP (github.com/vul-os/wrap),
 // the open work-coordination protocol: object encoding, content addressing,
-// signing, and the `trades/v0` mapping onto a PropFix job
+// signing, and the `trades/v0` mapping onto a Pango job
 // (ARCHITECTURE.md §8, docs/WRAP.md).
 //
 // This file is a small, self-contained deterministic CBOR (RFC 8949 §4.2.1)
