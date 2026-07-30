@@ -22,6 +22,7 @@
     --border:rgba(24,20,16,.10); --border-2:rgba(24,20,16,.16);
     --text:#18140F; --muted:#5C574F; --faint:#8A847A;
     --code-bg:#17151A; --code-text:#E4E4E7; --chip:rgba(24,20,16,.05);
+    --tag-fg:#8A4B0B;
   }
 }
 html{scroll-behavior:smooth}
@@ -100,7 +101,7 @@ img,svg{max-width:100%}
 .card h3{margin:0 0 8px;font-size:17.5px;letter-spacing:-.01em;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
 .card p{margin:0;color:var(--muted);font-size:14.5px}
 .card code{font-family:var(--mono);font-size:.86em;background:var(--chip);padding:1px 5px;border-radius:5px;color:var(--text)}
-.tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--warn) 38%, transparent);color:var(--warn);background:color-mix(in srgb,var(--warn) 10%, transparent);white-space:nowrap}
+.tag{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--warn) 38%, transparent);color:var(--tag-fg,var(--warn));background:color-mix(in srgb,var(--warn) 10%, transparent);white-space:nowrap}
 
 /* Diagram */
 .diagram{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:26px;overflow:auto;text-align:center}
@@ -122,7 +123,7 @@ img,svg{max-width:100%}
 .codeblock{background:var(--code-bg);border:1px solid var(--border-2);border-radius:var(--radius);overflow:hidden;margin-top:26px}
 .codeblock .bar{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
 .codeblock .bar i{width:11px;height:11px;border-radius:50%;background:#2A2A31;display:inline-block}
-.codeblock .bar span{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:#8A8A94}
+.codeblock .bar span{margin-left:auto;font-family:var(--mono);font-size:12.5px;color:#8A8A94}
 .codeblock pre{margin:0;padding:18px 20px;overflow:auto;font-family:var(--mono);font-size:13.5px;line-height:1.75;color:var(--code-text)}
 .codeblock .c{color:#7E7E88}
 
