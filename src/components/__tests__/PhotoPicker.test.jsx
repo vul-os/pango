@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../../test-support/user.js'
 import PhotoPicker from '../PhotoPicker.jsx'
 
 // jsdom has no createObjectURL/revokeObjectURL implementation.
@@ -16,7 +16,7 @@ describe('PhotoPicker', () => {
   })
 
   it('stages a selected file and calls onChange with it, without pretending to upload', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     const onChange = vi.fn()
     const { container } = render(<PhotoPicker files={[]} onChange={onChange} />)
 

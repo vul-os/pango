@@ -8,34 +8,40 @@ import { buildingsApi } from './api.js'
  * To show a unit's label anywhere a job list spans multiple buildings, this
  * fetches units for every building referenced and indexes them by id.
  */
+// Shared empty result, so "no buildings" returns a stable identity that
+// callers can safely use as a useMemo/useEffect dependency.
+const EMPTY = new Map()
+
 export function useUnitsIndex(buildingIds) {
   const key = [...new Set(buildingIds || [])].sort().join(',')
-  const [index, setIndex] = useState(new Map())
+  // Held together with the key it was fetched for, so a result belonging to a
+  // previous set of buildings is never handed back as if it were current.
+  const [loaded, setLoaded] = useState({ key: '', index: EMPTY })
 
   useEffect(() => {
+    // No buildings to look up: nothing to fetch, and nothing to reset either —
+    // the empty case is derived on the way out rather than written back into
+    // state from inside the effect, which would cost an extra render pass and
+    // leave one render reading the *old* index for the new key.
+    if (!key) return undefined
+
     let cancelled = false
-    const ids = key ? key.split(',') : []
-    if (ids.length === 0) {
-      setIndex(new Map())
-      return
-    }
-    Promise.all(ids.map((id) => buildingsApi.units(id).catch(() => [])))
+    Promise.all(key.split(',').map((id) => buildingsApi.units(id).catch(() => [])))
       .then((lists) => {
         if (cancelled) return
         const map = new Map()
         for (const list of lists) {
           for (const u of list) map.set(u.id, u)
         }
-        setIndex(map)
+        setLoaded({ key, index: map })
       })
       .catch(() => {
-        if (!cancelled) setIndex(new Map())
+        if (!cancelled) setLoaded({ key, index: EMPTY })
       })
     return () => {
       cancelled = true
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [key])
 
-  return index
+  return loaded.key === key ? loaded.index : EMPTY
 }

@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/vul-os/propfix/backend/internal/store"
@@ -130,6 +131,22 @@ func (e *Engine) applyOne(op store.Op) error {
 	}
 	if !known {
 		return errOrgUnknown
+	}
+	// The merge authority sees a remote op BEFORE it reaches the database
+	// (docs/SYNC.md §10). With an external engine installed, an op it refuses
+	// must never be journalled: a row this node holds and the engine does not
+	// is silent divergence, and nothing removes it afterwards. With no engine
+	// installed this is not reached and the built-in HLC decides, as it always
+	// has.
+	if m := e.s.Merger(); m != nil {
+		if op.Cose == "" {
+			// An op with no envelope was authored by a node still running the
+			// built-in engine. Counted, not refused: refusing would present a
+			// misconfigured fleet as a transport failure.
+			m.NoteLegacy()
+		} else if err := m.Ingest(op); err != nil {
+			return fmt.Errorf("merge engine refused op %s: %w", op.HLC, err)
+		}
 	}
 	return e.s.Tx(func(tx *sql.Tx) error {
 		if _, err := tx.Exec(

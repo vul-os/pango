@@ -72,6 +72,60 @@ unresolved. **Rebuilding the code does not rotate a key.** If you operate
 anything referenced there, read it directly rather than assuming the rebuild
 supersedes it.
 
+## Verifying a release download
+
+Every release attaches a `SHA256SUMS` manifest covering every published asset, and a
+[sigstore build-provenance attestation](https://docs.github.com/actions/security-guides/using-artifact-attestations)
+signed with a short-lived certificate minted from the release workflow's OIDC token. There
+is no long-lived signing key: nothing to leak, nothing to rotate, nothing whose absence
+quietly downgrades a check.
+
+`install.sh` now performs that check itself. It fetches `SHA256SUMS`, looks up the **exact**
+entry for your platform's binary, downloads it, and only then — if the digests match —
+makes it executable and moves it onto your PATH. An earlier version of that script
+downloaded, `chmod +x`'d and installed the binary having verified **nothing**, while the
+release workflow published a checksums file that consequently nobody read. That is fixed.
+
+To verify by hand instead, or to check the provenance signature as well:
+
+```sh
+curl -fsSLO https://raw.githubusercontent.com/vul-os/propfix/vX.Y.Z/scripts/verify.sh
+bash verify.sh --tag vX.Y.Z --attest propfix-linux-amd64
+```
+
+Both scripts have two outcomes: verified, or a non-zero exit with a diagnostic naming what
+was wrong. There is deliberately no `--skip-verify`, and **no path where a missing
+`SHA256SUMS` means "nothing to check"** — a script that shrugs at a 404 prints a line that
+looks like verification while checking nothing, which is worse than no check at all.
+
+| Exit | Meaning |
+|---|---|
+| 0 | verified |
+| 2 | usage error |
+| 3 | `SHA256SUMS` unfetchable or absent |
+| 4 | HTML page served where the manifest was expected |
+| 5 | manifest empty or with no well-formed digest line |
+| 6 | manifest has no entry for that asset |
+| 7 | asset unfetchable, or HTML served where bytes were expected |
+| 8 | truncated download |
+| 9 | digest mismatch |
+| 10 | `curl` or a digest tool missing |
+| 11 | `--attest` requested and provenance did not verify (`verify.sh` only) |
+| 12 | plaintext non-loopback origin refused |
+| 13 | release version unresolvable and none pinned (`install.sh` only) |
+
+Exit 13 is the no-fall-open guard: if the release API cannot be reached, `install.sh` will
+not guess a tag or fall back to a branch. Pin one with `PROPFIX_VERSION=vX.Y.Z`.
+
+Re-prove the refusals at any time — `bash scripts/verify.sh --selftest` (24 cases) and
+`sh install.sh --selftest` (16 cases). Each stands up a synthetic origin broken in exactly
+one way per route and asserts the exit code *and* that a diagnostic was printed. CI runs
+both on every push, and the release workflow runs both again before publishing.
+
+Binaries are **not** signed for macOS Gatekeeper or Windows SmartScreen. Build provenance
+answers "did these bytes come from this repo's release workflow", which is a different
+question from "does this OS trust the publisher".
+
 ## Disclosure
 
 Coordinated disclosure. Please give us a reasonable window to ship a fix before

@@ -77,11 +77,21 @@ who wins a tie. See [ARCHITECTURE.md](ARCHITECTURE.md) §7.
 With no secret set **and** no enrolled key, every sync request is rejected.
 Unenrolled peers are rejected by default.
 
-## Merge engine — 📐 Designed
+## Merge engine — ✅ Implemented
 
-| Setting | Env | Default | Notes |
-|---|---|---|---|
-| Merge engine | `PROPFIX_MERGER` | `builtin` | `builtin` = the HLC oplog engine. `dmtap` = the DMTAP-SYNC substrate engine via the `store.Merger` seam. |
+| Setting | Env | Flag | Default | Notes |
+|---|---|---|---|---|
+| Merge engine | `PROPFIX_MERGER` | `--merge-engine` | `builtin` | `builtin` = the HLC oplog engine. `substrate` (alias `dmtap`) = the shared DMTAP-SYNC algebra, `github.com/vul-os/kotva/bindings/go`, installed through the `store.Merger` seam. |
+| Wasm compile cache | `PROPFIX_WASM_CACHE` | — | unset | Directory for wazero's compiled machine code. Optional; without it the engine recompiles on every boot, costing a few hundred milliseconds once per process. |
+
+The flag overrides the env var. An **unrecognised value is fatal**, not
+defaulted: a typo in a deployment script that quietly ran the other algebra is
+the one mistake that cannot be detected afterwards.
+
+The substrate engine is pure Go — the algebra is a WebAssembly module executed by
+wazero — so `CGO_ENABLED=0` and single-static-binary cross-compilation are
+unaffected. It adds to the binary size; see the changelog entry for the measured
+figure.
 
 > [!CAUTION]
 > **This is a deployment-wide switch, never a gradual rollout.** Two engines can
@@ -89,6 +99,14 @@ Unenrolled peers are rejected by default.
 > history, because a tie-break is a property of the engine. Two nodes of one
 > deployment must never run different engines. The seam is chosen at boot and
 > never mixed.
+>
+> A node running the substrate engine **counts** ops that arrive with no signed
+> envelope rather than refusing them, so a half-switched fleet is visible instead
+> of looking like a transport failure. Counting it is not tolerating it: those ops
+> were authored under the other algebra and their element identity may not agree.
+
+See [SYNC.md §10](SYNC.md) for the ownership-class mapping and how to run the
+conformance vectors.
 
 ## WRAP — 📐 Designed
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../../../test-support/user.js'
 import CostLedger from '../CostLedger.jsx'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -32,7 +32,7 @@ describe('CostLedger', () => {
   })
 
   it('submits a new cost as integer minor units, never a float amount', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     jobsApi.addCost.mockResolvedValue({
       id: 'c2',
       kind: 'material',
@@ -57,7 +57,7 @@ describe('CostLedger', () => {
   })
 
   it('accepts a negative amount as a correction rather than offering to edit the original', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     jobsApi.addCost.mockResolvedValue({
       id: 'c3',
       kind: 'callout',
@@ -78,7 +78,7 @@ describe('CostLedger', () => {
   })
 
   it('rejects a zero amount client-side without calling the API', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     render(<CostLedger jobId="j1" costs={[]} parties={[]} onAdded={() => {}} />)
 
     await user.click(screen.getByRole('button', { name: /add cost/i }))

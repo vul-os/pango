@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/auth.jsx'
+import { useAuth } from '../lib/auth-context.js'
 import { ApiError } from '../lib/api.js'
 import AuthLayout from './AuthLayout.jsx'
 import { Input, Label } from '../components/ui/Field.jsx'

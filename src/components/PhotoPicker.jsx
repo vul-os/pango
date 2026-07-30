@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { CameraIcon, XIcon } from './icons.jsx'
 
 /**
@@ -9,15 +9,69 @@ import { CameraIcon, XIcon } from './icons.jsx'
  * uploaded, rather than pretending to save them (docs/ARCHITECTURE.md §13:
  * "a feature that silently does nothing is not" an acceptable state).
  */
+/**
+ * One object URL per File, for as long as that File is staged. Held at module
+ * scope (weakly) rather than in a ref so that reading it is not a render-time
+ * ref access, and so the lookup is *idempotent*: asking twice for the same
+ * File returns the same URL instead of allocating a second one. That is what
+ * makes it safe to derive preview URLs during render, including under
+ * StrictMode's deliberate double render.
+ */
+const urlForFile = new WeakMap()
+
+function previewUrl(file) {
+  let url = urlForFile.get(file)
+  if (!url) {
+    url = URL.createObjectURL(file)
+    urlForFile.set(file, url)
+  }
+  return url
+}
+
+function release(file) {
+  const url = urlForFile.get(file)
+  if (url) {
+    URL.revokeObjectURL(url)
+    urlForFile.delete(file)
+  }
+}
+
 export default function PhotoPicker({ files, onChange }) {
   const inputRef = useRef(null)
-  const [previews, setPreviews] = useState([])
+  // Files this picker was showing as of the last commit. Only ever touched
+  // from effects, never during render.
+  const shownRef = useRef([])
+  const unmountRevoke = useRef(0)
 
+  // Derived during render rather than published from an effect. The effect
+  // version (setPreviews inside useEffect) left `previews` one render behind
+  // `files`: straight after the parent removed a photo this component still
+  // rendered the *old* preview list, so `previews[i]` no longer lined up with
+  // `files[i]` and clicking remove in that frame dropped the wrong photo.
+  const previews = files.map(previewUrl)
+
+  // Free the URLs of files that have been unstaged. Runs after commit, so it
+  // can never revoke a URL the live DOM still points at, and it has no cleanup
+  // of its own, so re-running it is a no-op.
   useEffect(() => {
-    const urls = files.map((f) => URL.createObjectURL(f))
-    setPreviews(urls)
-    return () => urls.forEach((u) => URL.revokeObjectURL(u))
+    const gone = shownRef.current.filter((f) => !files.includes(f))
+    shownRef.current = files
+    gone.forEach(release)
   }, [files])
+
+  // Free whatever is left when the picker really goes away. StrictMode
+  // double-invokes effects (setup -> cleanup -> setup) with no re-render in
+  // between, so revoking straight from the cleanup would revoke the URLs the
+  // remounted tree is still rendering and blank every preview in dev.
+  // Deferring by a task, and cancelling it on re-setup, makes the dev-only
+  // fake unmount a no-op while a real unmount still releases the URLs.
+  useEffect(() => {
+    clearTimeout(unmountRevoke.current)
+    return () => {
+      const doomed = shownRef.current
+      unmountRevoke.current = setTimeout(() => doomed.forEach(release), 0)
+    }
+  }, [])
 
   function addFiles(fileList) {
     const next = [...files, ...Array.from(fileList).filter((f) => f.type.startsWith('image/'))]
@@ -57,9 +111,12 @@ export default function PhotoPicker({ files, onChange }) {
 
       {files.length > 0 && (
         <div className="mt-2.5 grid grid-cols-4 gap-2">
-          {previews.map((src, i) => (
-            <div key={src} className="group relative aspect-square overflow-hidden rounded-sm border border-line">
-              <img src={src} alt="" className="h-full w-full object-cover" />
+          {files.map((file, i) => (
+            <div
+              key={`${file.name}:${file.size}:${file.lastModified}:${i}`}
+              className="group relative aspect-square overflow-hidden rounded-sm border border-line"
+            >
+              <img src={previews[i]} alt="" className="h-full w-full object-cover" />
               <button
                 type="button"
                 onClick={() => removeAt(i)}

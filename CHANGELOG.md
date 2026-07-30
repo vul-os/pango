@@ -6,15 +6,52 @@ The format is based on [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 > [!NOTE]
-> PropFix is being **rebuilt from scratch**. There is no released, runnable
-> software: no binary, no image, no UI. Entries below describe design and
-> documentation work, and say so. A feature only appears under **Added** once it
-> is implemented — a design document for it is documentation, not a feature.
+> PropFix is being **rebuilt from scratch**, and nothing has been **released**:
+> there is no tag, no published binary and no published image. The tree does
+> build and run — `npm run build:all` produces a single binary with the frontend
+> embedded, and `propfix --demo` serves a seeded in-memory instance — so "not
+> released" is the claim here, not "not runnable". A feature only appears under
+> **Added** once it is implemented; a design document for it is documentation,
+> not a feature.
 
 ## [Unreleased]
 
 ### Added
 
+- **The shared merge engine, in the seam that was built for it.**
+  `backend/internal/sync/substrate` implements `store.Merger` over
+  `github.com/vul-os/kotva/bindings/go@v0.2.1` — the same compiled algebra the
+  rest of the suite runs, executed through wazero, so it is pure Go and
+  `CGO_ENABLED=0` cross-compilation is unaffected (verified for linux
+  amd64/arm64/arm, darwin amd64/arm64, windows amd64, freebsd amd64). Select it
+  with `--merge-engine=substrate` (or `PROPFIX_MERGER`); an unrecognised value is
+  fatal rather than defaulted. Default is still `builtin`.
+  - It replaces the **algebra**, not the clock: `store.Journal` still mints the
+    stamp, because in PropFix a stamp is also the oplog's primary key and every
+    replicated row's `hlc` column. `store/hlc.go`, `store/identity.go`,
+    `sync/folder.go` and `sync/transport_auth.go` are all deliberately kept —
+    `docs/SYNC.md` §11 now records the reason per file rather than as a blanket
+    "the crate does not exist".
+  - **Size cost, measured on this repository, not quoted from a sibling:**
+    linux/amd64 grew 17,000,275 → 20,832,783 bytes, **+3,832,508 bytes
+    (+3.65 MiB, +22.5%)**. Only 427,731 bytes of that is the algebra module; the
+    remaining ~89% is the wazero runtime, so the increment is paid once and is
+    nearly flat as more of the algebra is used.
+  - No migration was required. The `oplog.cose` column and the `store.Merger`
+    interface already existed, and PropFix's op identity is its HLC stamp — not a
+    UUID — so it does not disagree with the engine's content address.
+- `backend/internal/sync/classes.go` — which replicated table is a
+  last-writer-wins register and which is add-only, as data, in one place read by
+  both engines. `classes_test.go` fails if a migration adds a replicated table
+  nobody classified, which would otherwise silently inherit last-writer-wins and
+  lose concurrent append-only entries.
+- A **forward drift bound** on the HLC (`store.DefaultMaxDrift`, 5 minutes).
+  `Observe` previously folded any in-width remote stamp, so one stamp dated 2085
+  would out-order every honest write on a node permanently, with no error and no
+  recovery short of editing the database. Seeding from the node's own journal
+  deliberately bypasses the bound; folding a peer's stamp does not. The bound sits
+  *above* the substrate engine because that engine's `Clock.Observe` takes no
+  receiver reading and structurally cannot check one.
 - `docs/ARCHITECTURE.md` — the binding contract: non-negotiables, stack, domain
   model, authority model, append-only money rule, sync design, WRAP binding,
   layering, migrations, security posture, and the status-honesty rule.
@@ -104,9 +141,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Not yet implemented
 
-Listed explicitly so that the absence is a record rather than an omission: the
-Go backend, the React frontend, migrations, the HLC oplog, peer sync, folder
-transport, WRAP support, inspections, reporting, demo mode, the screenshotter,
-and any released artefact.
+Listed explicitly so that the absence is a record rather than an omission:
+
+- **A released artefact.** No tag has ever been cut (`git tag` is empty) and no
+  build output is committed, so there is nothing to download and nothing to
+  install. `.github/workflows/release.yml`, `install.sh` and `scripts/verify.sh`
+  exist and their failure matrices are exercised by `scripts/check.sh`, but they
+  have never run against a real release.
+- **A published container image.** There is a `Dockerfile`; it is not pushed
+  anywhere.
+
+Everything else this list used to claim was missing has since been built, and
+the claim was left standing after it stopped being true. For the record, with
+where to look:
+
+| Was listed absent | Actually |
+| --- | --- |
+| The Go backend | `backend/` — 68 Go files across `api`, `domain`, `inspect`, `repo`, `report`, `store`, `sync`, `wrap`; `go build ./...` and `go test ./...` both pass |
+| The React frontend | `src/` — 47 modules, five routed pages, `npm run build` succeeds, 52 vitest tests pass |
+| Migrations | `backend/internal/store/migrations/` — `1_core`, `100_property`, `200_maintenance`, `201_job_number_dedupe`, `300_inspections`, `301_inspection_job_link`, applied by `store/migrate.go` |
+| The HLC oplog | `backend/internal/store/hlc.go` + the `oplog` table in `1_core.sql`; vectors in `store/hlc_vectors_test.go` |
+| Peer sync | `backend/internal/sync/sync.go`, `apply.go`, `ops.go`, with `transport_auth.go` for peer authentication |
+| Folder transport | `backend/internal/sync/folder.go` (+ `folder_test.go`) |
+| WRAP support | `backend/internal/wrap/` — `cbor.go`, `kinds.go`, `object.go`, `propfix.go`, plus the `conformance/` vector harness |
+| Inspections | `backend/internal/inspect/compare.go` and `src/pages/InspectionsPage.jsx` / `InspectionDetailPage.jsx`, including the ingoing/outgoing comparison endpoint |
+| Reporting | `backend/internal/report/report.go` and `src/pages/ReportsPage.jsx` |
+| Demo mode | `backend/cmd/propfix/demo.go` (347 lines of seed data) behind the `--demo` flag in `cmd/propfix/main.go` |
+| The screenshotter | `scripts/screenshots.mjs` (and `scripts/qa-shots.mjs`), wired up as `npm run screenshots` |
 
 [Unreleased]: https://github.com/vul-os/propfix/commits/main

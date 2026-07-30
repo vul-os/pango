@@ -1,7 +1,7 @@
 VERSION := $(shell cat VERSION 2>/dev/null || echo dev)
 
 .PHONY: dev dev-app build build-frontend test test-go test-e2e lint \
-        conformance conformance-status \
+        conformance conformance-status sync-conformance sync-conformance-status \
         screenshots qa-shots notices check run
 
 # UI-only dev loop: Vite dev server + hot reload, proxying /api to a
@@ -33,6 +33,7 @@ test: test-go test-e2e
 test-go:
 	cd backend && go test ./...
 	@$(MAKE) --no-print-directory conformance-status
+	@$(MAKE) --no-print-directory sync-conformance-status
 
 # WRAP conformance visibility.
 #
@@ -52,6 +53,47 @@ conformance-status:
 # this before making a conformance claim anywhere.
 conformance:
 	cd backend && WRAP_VECTORS_REQUIRED=1 go test -count=1 -v -run TestConformanceVectors ./internal/wrap/
+
+# SYNC (merge substrate) conformance visibility. Same shape as the WRAP targets
+# above and for the same reason — a skipped Go test prints nothing at all, so a
+# loud skip is invisible in exactly the run that matters.
+#
+# These are a DIFFERENT claim from the WRAP vectors. The WRAP vectors need a
+# sibling vul-os/wrap checkout that usually does not exist; the SYNC vectors are
+# available, so this one can actually be made to pass.
+sync-conformance-status:
+	@cd backend && go test -count=1 -v -run TestFrozenSyncVectors ./internal/sync/substrate/ 2>&1 \
+	  | grep -Ev '^(=== (RUN|CONT|PAUSE|NAME)|[[:space:]]*--- |PASS$$|FAIL$$|ok[[:space:]])' || true
+
+# Refuses to pass unless the frozen SYNC vectors were actually found and run.
+#
+# The fixtures are REPO files, not module files, so they do not arrive with
+# `go get`. KOTVA_DIR must point at a checkout of github.com/vul-os/kotva AT THE
+# TAG THE BINDING IS PINNED TO — a checkout at some later commit would be
+# verifying against a different frozen suite than the one linked in, which is a
+# conformance claim about the wrong thing:
+#
+#   git clone https://github.com/vul-os/kotva /tmp/kotva
+#   git -C /tmp/kotva checkout bindings/go/$(KOTVA_BINDING_VERSION)
+#   make sync-conformance KOTVA_DIR=/tmp/kotva
+#
+# KOTVA_DIR is deliberately NOT defaulted to ../kotva. Silently accepting
+# whatever a sibling checkout happens to be sitting on is how a green run comes
+# to mean nothing.
+KOTVA_BINDING_VERSION := $(shell cd backend && go list -m -f '{{.Version}}' github.com/vul-os/kotva/bindings/go 2>/dev/null)
+
+sync-conformance:
+ifndef KOTVA_DIR
+	@echo "KOTVA_DIR is not set. The frozen SYNC vectors live in the kotva REPOSITORY,"
+	@echo "not in the Go module, so they are not on disk after 'go get'."
+	@echo
+	@echo "  git clone https://github.com/vul-os/kotva /tmp/kotva"
+	@echo "  git -C /tmp/kotva checkout bindings/go/$(KOTVA_BINDING_VERSION)"
+	@echo "  make sync-conformance KOTVA_DIR=/tmp/kotva"
+	@exit 1
+endif
+	cd backend && KOTVA_DIR=$(KOTVA_DIR) PROPFIX_REQUIRE_SYNC_VECTORS=1 \
+	  go test -count=1 -v -run TestFrozenSyncVectors ./internal/sync/substrate/
 
 # Browser end-to-end tests against the real binary (builds it if stale, see
 # e2e/global-setup.js). Needs `npx playwright install chromium` once.

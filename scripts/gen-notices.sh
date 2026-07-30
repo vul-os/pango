@@ -38,10 +38,28 @@ if [[ -z "$DETECTOR" ]]; then
   DETECTOR="$TMP/bin/go-licence-detector"
 fi
 
+# scripts/notices/go-overrides.json, IF PRESENT, supplies the licence for modules
+# that ship none inside the directory the module cache holds. The detector fails
+# closed on a module it cannot attribute, which is correct — so an override is a
+# small pinned file citing where its claim comes from, never a flag that
+# suppresses the check.
+#
+# It is currently ABSENT, and that is the good state. It existed for
+# github.com/vul-os/kotva/bindings/go, a SUBMODULE whose licence sat at its
+# repository root where `go mod download` never reaches. That was fixed upstream:
+# bindings/go ships its own LICENSE-MIT from v0.2.2, so the detector now reads
+# real terms instead of our inference about somebody else's licence. Passing the
+# flag conditionally keeps the mechanism available without making an empty file
+# mandatory.
 echo "==> resolving Go module graph (backend/)"
 (cd backend && go mod download)
+OVERRIDES=()
+if [ -s scripts/notices/go-overrides.json ]; then
+  OVERRIDES=(-overrides scripts/notices/go-overrides.json)
+fi
 (cd backend && go list -m -json all) | "$DETECTOR" \
   -includeIndirect \
+  "${OVERRIDES[@]}" \
   -noticeTemplate scripts/notices/go-modules.tmpl \
   -noticeOut "$TMP/go-notices.txt"
 

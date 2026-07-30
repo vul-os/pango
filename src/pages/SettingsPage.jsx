@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useAuth } from '../lib/auth.jsx'
+import { useAuth } from '../lib/auth-context.js'
 import { partiesApi, peersApi, templatesApi } from '../lib/api.js'
 import { useAsync } from '../lib/useAsync.js'
 import { PARTY_KINDS, label } from '../lib/domain.js'

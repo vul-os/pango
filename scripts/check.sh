@@ -5,11 +5,19 @@
 # one is missing it fails loudly here rather than silently passing, which is
 # the point of the gate.
 #
-# Status as of this commit: backend (gofmt/vet/build/test), the docs mirror
-# check and the frontend test+build all pass; src/ has app code and `npm run
-# build` succeeds. `npm run lint` FAILS on 7 pre-existing eslint errors in
-# src/, so this script exits non-zero. That is a real failure to fix, not a
-# step to silence.
+# Status: the `frontend: lint` step is green, and with it this script exits 0 —
+# verified end to end against a clean checkout of HEAD plus the eslint fixes
+# (all ten steps, exit 0).
+#
+# It previously exited non-zero on 7 eslint errors in src/, left failing on
+# purpose rather than silenced. Those are fixed at the source — see
+# eslint.config.js (`no-unused-vars` now exempts capitalised *parameters* too,
+# because core ESLint cannot see JSX references and this config carries no
+# eslint-plugin-react), src/lib/useAsync.js (a caller-supplied `deps` array can
+# never be a hook dependency list, so it is serialised to a scalar and
+# `loading` is derived rather than set from an effect), src/lib/auth.jsx +
+# src/lib/auth-context.js, src/lib/useUnitsIndex.js and
+# src/components/PhotoPicker.jsx. Nothing is `eslint-disable`d.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -33,6 +41,22 @@ step "backend: go build"
 
 step "backend: go test"
 ( cd backend && go test ./... ) || fail=1
+
+# Conformance visibility, not a gate.
+#
+# Two harnesses load their vectors from a checkout this repository does not
+# contain — internal/wrap from vul-os/wrap, internal/sync/substrate from
+# vul-os/kotva — and skip when it is absent. `go test` without -v prints NOTHING
+# for a skipped test, so the step above goes green while saying nothing about
+# whether either claim was checked. These re-run just those two verbosely so
+# their banners land in the place people actually look.
+#
+# Neither fails this script. `make conformance` and
+# `make sync-conformance KOTVA_DIR=...` are the gates that do, and they are what
+# a conformance claim has to be made behind.
+step "conformance: what was NOT verified"
+make --no-print-directory conformance-status || true
+make --no-print-directory sync-conformance-status || true
 
 # site/docs/ is a generated mirror of docs/ (scripts/sync-docs.mjs) that the
 # docs viewer fetches at runtime. Nothing else re-runs the copy, so editing

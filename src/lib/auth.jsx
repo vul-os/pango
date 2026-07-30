@@ -1,7 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { authApi, ApiError } from './api'
-
-const AuthContext = createContext(null)
+import { AuthContext } from './auth-context.js'
 
 // status: 'loading' | 'anonymous' | 'authenticated'
 export function AuthProvider({ children }) {
@@ -9,22 +8,44 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [org, setOrg] = useState(null)
 
-  const refresh = useCallback(async () => {
-    try {
-      const data = await authApi.me()
+  // `data` is a /auth/me payload, or null for "no session".
+  const applySession = useCallback((data) => {
+    if (data) {
       setUser(data.user)
-      setOrg(data.organisation)
+      setOrg(data.organisation ?? null)
       setStatus('authenticated')
-    } catch {
+    } else {
       setUser(null)
       setOrg(null)
       setStatus('anonymous')
     }
   }, [])
 
+  const refresh = useCallback(
+    () => authApi.me().then(applySession, () => applySession(null)),
+    [applySession],
+  )
+
+  // Resolve the session once on mount. The state lands in the promise's
+  // callbacks rather than in the effect body — an effect that calls setState
+  // synchronously drives a second render pass before the browser paints, and
+  // React's own guidance is to subscribe here and set state when the external
+  // system answers. `cancelled` keeps a provider that unmounted (or logged in)
+  // mid-flight from having this initial probe overwrite the newer state.
   useEffect(() => {
-    refresh()
-  }, [refresh])
+    let cancelled = false
+    authApi.me().then(
+      (data) => {
+        if (!cancelled) applySession(data)
+      },
+      () => {
+        if (!cancelled) applySession(null)
+      },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [applySession])
 
   const login = useCallback(async (email, password) => {
     const data = await authApi.login({ email, password })
@@ -57,11 +78,9 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout()
     } finally {
-      setUser(null)
-      setOrg(null)
-      setStatus('anonymous')
+      applySession(null)
     }
-  }, [])
+  }, [applySession])
 
   const value = useMemo(
     () => ({ status, user, org, login, register, logout, refresh }),
@@ -69,10 +88,4 @@ export function AuthProvider({ children }) {
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const ctx = useContext(AuthContext)
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider')
-  return ctx
 }

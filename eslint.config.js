@@ -19,7 +19,20 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Core `no-unused-vars` has no JSX awareness — that is what
+      // eslint-plugin-react's `jsx-uses-vars` exists for, and this config
+      // deliberately carries only the hooks + react-refresh plugins. So any
+      // component identifier referenced *only* as `<Foo />` reads as unused.
+      // `varsIgnorePattern` already covers the import/declaration case (every
+      // `<PlusIcon />`-style import in src/ relies on it). Destructured
+      // parameters are governed by `args*`, not `vars*`, so they need the same
+      // exemption or e.g. `NAV.map(({ icon: Icon }) => <Icon />)` and
+      // `Card({ as: Comp })` are false positives. In this codebase a
+      // capitalised identifier is a component or a class, never a plain value.
+      'no-unused-vars': [
+        'error',
+        { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' },
+      ],
     },
   },
   {

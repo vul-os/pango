@@ -259,6 +259,15 @@ func (s *Store) Vector() (map[string]string, error) {
 	return out, rows.Err()
 }
 
+// MaxJournalledHLC is the newest stamp in this node's own journal, or "" for an
+// empty oplog. It is what a clock is seeded past on open, and what an external
+// merge engine's clock has to be seeded past too so the two start level.
+func (s *Store) MaxJournalledHLC() string {
+	var max sql.NullString
+	_ = s.db.QueryRow("SELECT MAX(hlc) FROM oplog").Scan(&max)
+	return max.String
+}
+
 // OpCount reports how many ops this node holds. Used by status surfaces and
 // tests.
 func (s *Store) OpCount() (int, error) {

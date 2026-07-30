@@ -88,13 +88,44 @@ switch, never a gradual rollout.**
 
 The HLC tolerates skewed wall clocks — an observed timestamp pushes the local
 clock forward — but keep node clocks roughly sane (NTP) so that "newest wins"
-matches human expectation. A wildly fast clock does not corrupt anything; it
-just wins arguments it should not have won.
+matches human expectation.
+
+**Forward skew is bounded, because it is not recoverable.** The width bounds
+above stop a peer widening a field; they do not stop a peer *inside* those widths
+handing over a stamp dated 2085. A hybrid logical clock never moves backwards, so
+folding that one stamp in would leave it out-ordering every honest write on this
+node **permanently** — no error, no recovery short of editing the database. So
+`Observe` refuses a stamp more than **5 minutes** (`store.DefaultMaxDrift`)
+ahead of this node's own clock, and leaves the clock untouched when it does.
+
+Two details matter and are easy to get backwards:
+
+- **Seeding is not observing.** A clock is seeded past `MAX(hlc)` from its own
+  oplog on open, and that path deliberately skips the bound. A node whose RTC was
+  wrong for an hour has real ops stamped in the future; refusing to seed past
+  them would leave it minting stamps *below* writes it has already journalled and
+  losing every later edit to its own history. The bound exists to stop a stranger
+  moving this clock, not to stop it recovering its past.
+- **The bound is deliberately looser than the substrate engine's.** The shared
+  engine enforces its own §3 skew bound (120 s) on the **op-ingest** path. This
+  one guards a different path: a peer's advertised version vector (§6) is a bare
+  map of author to newest stamp, and folding one is how a node decides what to
+  ask for — no op is involved, so no op-ingest check can fire. Collapsing the two
+  into one number leaves whichever path the survivor does not cover unguarded.
 
 ## 3. What merges how
 
 This is the section most likely to be broken by someone adding a feature. Read
 it before adding a table.
+
+The table below is prose. The **executable** copy is
+[`backend/internal/sync/classes.go`](../backend/internal/sync/classes.go), which
+holds it as data, and `classes_test.go`, which fails if a migration adds a
+replicated table (one with both an `id` and an `hlc` column) that nobody
+classified — otherwise a new table would quietly inherit last-writer-wins,
+which for anything append-only silently loses concurrent entries. Two consumers
+read that list: the built-in engine's apply path, and the substrate binding's
+mapping onto the shared algebra's ownership classes (§10).
 
 | Data | Merge rule | Why |
 |---|---|---|
@@ -371,7 +402,7 @@ Because the files are append-only and applying an op twice is a no-op, it does
 not matter how often the stick is carried, in what order, or whether a trip is
 skipped. Every node converges once the bytes reach it.
 
-## 10. The merge engine is a seam
+## 10. The merge engine is a seam — and the substrate is now in it
 
 `store.Merger` is an interface. Leaving it `nil` gives the built-in HLC engine.
 Setting it swaps in **DMTAP-SYNC**, the shared substrate engine, so PropFix does
@@ -384,6 +415,82 @@ divergence rather than an error.
 
 The precondition that makes the swap safe is already in the design: a node's id
 **is** its public key, so both engines break an exact tie on the same value.
+
+### What is implemented
+
+`backend/internal/sync/substrate` implements `store.Merger` over
+`github.com/vul-os/kotva/bindings/go` — the same compiled Rust algebra the rest
+of the suite runs, executed through **wazero**, so `CGO_ENABLED=0` and
+single-static-binary cross-compilation are preserved. Select it with
+`--merge-engine=substrate`; an unrecognised value is fatal rather than
+defaulted, because a typo that quietly ran the other algebra is the one mistake
+that cannot be detected afterwards.
+
+**It replaces the algebra, not the clock.** With it installed, the shared engine
+decides who won a conflicting write and what an add-only set contains.
+`store.Journal` still mints the stamp, because in PropFix a stamp is not only an
+ordering device — it is the oplog's primary key and the `hlc` column of every
+replicated row. So there is still exactly one minter and no second timeline; the
+engine's clock is fed and never asked.
+
+### The two ownership classes
+
+The shared algebra offers six op kinds. PropFix uses two, mapped one-for-one
+onto §3's two merge rules:
+
+| PropFix rule | Substrate class | Address |
+|---|---|---|
+| Last-writer-wins per row | §4.4 LWW register | target `<tbl>/<row_id>`, field `row` |
+| Union / append-only | §4.3 add-only set | target `<tbl>/<row_id>`, value stamped |
+
+Granularity is per **row**, not per column, because PropFix journals a whole row
+per write. A per-column mapping would claim a merge granularity the product does
+not have and would converge differently from the built-in engine on two
+concurrent edits to different columns of one row.
+
+**§4.3 identifies a set element by its VALUE.** Two adds carrying identical
+bytes are one element with two add-tags, not two elements — and a job's cost is
+`SUM(amount_minor)` over its entries, so two collapsed entries read as half the
+money, converged, on every replica, with no error anywhere. PropFix is kept clear
+of that twice over: the row id is in the **target**, so two independently
+recorded entries are different objects rather than equal values; and the element's
+**value** is prefixed with the op's own `wall‖counter‖author`, so element
+identity equals *op* identity — which is exactly what the oplog's primary key
+already is. `substrate_test.go` mints two byte-identical cost entries and fails
+if the engine ends up holding one.
+
+The deliberate **non-**choices are recorded in that package's doc comment: no
+§4.5 death certificate (it would dominate every later write, so a re-created unit
+would be invisible on every replica at once — §3's soft-delete trap), no §4.6
+PN-counter for money or hours (it converges on the total and discards the
+entries, and the entries *are* the audit trail), and no §4.7 sequence or §4.8
+tree, because nothing in the schema is an ordered list or a reparentable
+hierarchy.
+
+### Conformance
+
+`substrate/vectors_test.go` drives the substrate's own frozen conformance
+vectors, so convergence is measured rather than assumed. The fixtures are **repo**
+files, not module files, so they are not vendored with the dependency:
+
+```
+git clone https://github.com/vul-os/kotva && git -C kotva checkout bindings/go/v0.2.1
+KOTVA_DIR=$PWD/kotva PROPFIX_REQUIRE_SYNC_VECTORS=1 go test ./internal/sync/substrate/ -count=1
+```
+
+Without `KOTVA_DIR` the harness skips loudly and names how many vectors went
+unverified; `PROPFIX_REQUIRE_SYNC_VECTORS=1` turns that skip into a failure so CI
+can insist. This is a **different** claim from the WRAP vectors described in
+[WRAP.md](WRAP.md) — those are still unavailable locally — and neither implies
+the other.
+
+### What this costs
+
+The engine is a WebAssembly module carried inside the binary. Roughly 90% of the
+size it adds is the wazero runtime rather than the algebra, so the increment is
+paid once and is nearly flat as more of the algebra is used. The measured figure
+for this repository is recorded in the changelog entry for the change rather than
+here, where it would go stale.
 
 ## 11. Open questions
 
@@ -399,9 +506,12 @@ Recorded honestly rather than decided by omission.
 - **Inspection photo volume.** A full move-out inspection is dozens of photos.
   Whether these ride the folder transport or are fetched separately is an open
   operational question, not a solved one.
-- **Verifying convergence.** A state-root style content address over the whole
-  replicated state (including tombstones and anything no screen displays) would
-  let two nodes prove they agree rather than eyeball it. Desirable; unspecified.
+- **Verifying convergence.** Answered for the substrate engine, still open for
+  the built-in one. `substrate.Engine.StateRoot` is a content address over the
+  replica's whole observable state, so two nodes running `--merge-engine=substrate`
+  can prove they agree rather than eyeball it, and the convergence tests compare
+  roots rather than screens. Nothing equivalent exists for the built-in engine,
+  and nothing surfaces the root over the API yet.
 
 ### Duplicated sync substrate
 
@@ -419,8 +529,30 @@ rediscovered:
 **They must not import each other.** Neither product may take a build or
 runtime dependency on the other; a product that stops building because a
 sibling repository moved is not self-hostable. The agreed convergence path is a
-published substrate crate plus a spec and vectors. **That crate does not
-exist**, and until it does the duplication stays.
+published substrate crate plus a spec and vectors.
+
+**That crate now exists** — `github.com/vul-os/kotva/bindings/go`, adopted in
+§10 — and it retires the duplication for the *algebra*. It does not retire these
+four files, and the reason is per-file rather than general:
+
+| File | Status after adopting the substrate |
+|---|---|
+| `store/hlc.go` | **Stays.** The engine supplies ordering, but PropFix's stamp is also the oplog's primary key and the `hlc` column of every replicated row, so the format cannot be dropped without a schema rewrite. It is additionally the home of the drift bound that has to sit *above* the engine (§2, "Clock skew"), because the engine's `Clock.Observe` takes no receiver reading and structurally cannot check one. |
+| `store/identity.go` | **Stays, and was reviewed rather than assumed.** The binding takes a `Signer` — an interface that asks for signatures and never for key material — which is the shape `CryptoSigner` already had. Adopting the binding's own identity objects would mean handing over the seed, so it would be a downgrade. `ErrCorruptIdentity` is kept. |
+| `sync/folder.go` | **Stays.** Sneakernet is a transport, not an algebra. Each node appends only its own `ops-<pubkey>.jsonl`, so the file-sync layer never has a conflict to resolve; the substrate has nothing to say about that and nothing better to offer. |
+| `sync/transport_auth.go` | **Stays, unchanged.** It authenticates a *request*; the substrate signs an *op*. Both now happen, at different layers. Nothing here was relaxed to accommodate the engine. |
+
+`conformance/hlc_vectors.json` also stays: it is the contract between PropFix's
+built-in engine and FlowStock's, and the built-in engine is still what a node runs
+by default.
+
+> **One thing FlowStock needs to know.** Adding the drift bound exposed that the
+> `tick` group's `seed` field is a node's **own journal high-water mark**, not a
+> remote claim — two of those vectors seed decades ahead of `now_ms` on purpose.
+> PropFix's harness now seeds through the unguarded path and folds *remote* stamps
+> through the bound. The vector data is unchanged; only the harness's reading of
+> it moved. A FlowStock copy that spells seeding as `Observe` will fail those two
+> vectors the moment it grows the same bound.
 
 What can be done in the meantime, and has been, is to make the copies
 *verifiably* agree where a disagreement would be silent. `conformance/hlc_vectors.json`

@@ -27,19 +27,6 @@ import (
 	"github.com/vul-os/propfix/backend/internal/store"
 )
 
-// unionTables merge by union (docs/SYNC.md §3): applying an op either inserts
-// a new row or is a no-op if the row (by id) already exists. Rows here are
-// immutable once written — cost_entry and time_entry for the append-only
-// money rule (ARCHITECTURE.md §6), job_event and finding because they are
-// evidence, attachment because it is content-addressed.
-var unionTables = map[string]bool{
-	"cost_entry": true,
-	"time_entry": true,
-	"job_event":  true,
-	"finding":    true,
-	"attachment": true,
-}
-
 type queryer interface {
 	Query(query string, args ...any) (*sql.Rows, error)
 }
@@ -136,7 +123,7 @@ func applyToTable(tx *sql.Tx, op store.Op) error {
 	colList := strings.Join(colNames, ", ")
 	valList := strings.Join(exprs, ", ")
 
-	if unionTables[op.Tbl] || !containsCol(cols, "hlc") {
+	if ClassOf(op.Tbl) == ClassUnion || !containsCol(cols, "hlc") {
 		// No HLC column means this apply path has no way to arbitrate a
 		// conflict for that table (none exists in the current schema, but a
 		// future one should fail safe rather than silently overwrite).

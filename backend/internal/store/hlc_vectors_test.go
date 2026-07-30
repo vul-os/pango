@@ -93,11 +93,11 @@ func TestHLCConformanceVectors(t *testing.T) {
 	if v.VectorsVersion != 1 {
 		t.Fatalf("vectors_version = %d, this runner implements 1", v.VectorsVersion)
 	}
-	if v.MaxWallMS != maxWallMS {
-		t.Errorf("max_wall_ms = %d, implementation has %d", v.MaxWallMS, int64(maxWallMS))
+	if v.MaxWallMS != MaxWallMS {
+		t.Errorf("max_wall_ms = %d, implementation has %d", v.MaxWallMS, int64(MaxWallMS))
 	}
-	if v.MaxCounter != maxCounter {
-		t.Errorf("max_counter = %d, implementation has %d", v.MaxCounter, uint32(maxCounter))
+	if v.MaxCounter != MaxCounter {
+		t.Errorf("max_counter = %d, implementation has %d", v.MaxCounter, uint32(MaxCounter))
 	}
 	if got, want := v.StampFormat, "{unix_ms:013d}-{counter:04x}-{tiebreak_hex}"; got != want {
 		t.Errorf("stamp_format = %q, this runner implements %q", got, want)
@@ -183,7 +183,14 @@ func TestHLCConformanceVectors(t *testing.T) {
 				now := c.NowMS
 				h := &HLC{author: author, nowFn: func() int64 { return now }}
 				if c.Seed != "" {
-					h.Observe(c.Seed)
+					// `seed` is this node's OWN journal high-water mark — the
+					// vectors' `why` text says so ("restart with a wall clock
+					// behind the oplog"). It is not a remote claim, so it goes
+					// through the unguarded seeding path the way NewHLC does,
+					// not through Observe's drift bound. Two of these vectors
+					// seed decades ahead of `now_ms` on purpose; refusing them
+					// as drift would be refusing this node its own history.
+					h.fold(c.Seed)
 				}
 				for i, want := range c.Expect {
 					if i == 1 && c.ThenNowMS != 0 {

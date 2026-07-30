@@ -186,7 +186,10 @@ function BuildingReport({ byBuildingQ }) {
 }
 
 function UnitReport({ byUnitQ, buildings, buildingId, onBuildingChange }) {
-  const rows = byUnitQ.data || []
+  // Memoised so the `sorted` memo below actually holds: a bare
+  // `byUnitQ.data || []` is a fresh array on every render whenever data is
+  // null, which invalidated the sort each time.
+  const rows = useMemo(() => byUnitQ.data || [], [byUnitQ.data])
   const maxCost = Math.max(1, ...rows.map((r) => Number(r.cost_minor)))
   const sorted = useMemo(() => [...rows].sort((a, b) => Number(b.cost_minor) - Number(a.cost_minor)), [rows])
 

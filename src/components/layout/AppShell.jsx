@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
-import { useAuth } from '../../lib/auth.jsx'
+import { useAuth } from '../../lib/auth-context.js'
 import { useTheme } from '../../lib/theme.js'
 import {
   WrenchIcon,

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../../test-support/user.js'
 import { MemoryRouter } from 'react-router-dom'
 import LoginPage from '../LoginPage.jsx'
 import { AuthProvider } from '../../lib/auth.jsx'
@@ -45,7 +45,7 @@ describe('LoginPage', () => {
   })
 
   it('shows the server error message rather than a generic failure on bad credentials', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     authApi.login.mockRejectedValue(new ApiError(401, 'invalid email or password'))
     renderLogin()
 
@@ -57,7 +57,7 @@ describe('LoginPage', () => {
   })
 
   it('calls the login API with trimmed credentials on submit', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     authApi.login.mockResolvedValue({ token: 't', user: { id: 'u1', name: 'Demo', email: 'demo@propfix.local' } })
     renderLogin()
 

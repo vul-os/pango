@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../../../test-support/user.js'
 import EventThread from '../EventThread.jsx'
 
 vi.mock('../../../lib/api.js', () => ({
@@ -27,7 +27,7 @@ describe('EventThread', () => {
   })
 
   it('the tenant-visible filter hides internal-only events — this is the tenant\'s view', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     render(<EventThread jobId="j1" events={events} parties={parties} onPosted={() => {}} />)
 
     await user.click(screen.getByRole('button', { name: /tenant-visible \(1\)/i }))
@@ -37,7 +37,7 @@ describe('EventThread', () => {
   })
 
   it('defaults a new post to internal, and posting requires an explicit switch to make it tenant-visible', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     jobsApi.addEvent.mockResolvedValue({
       id: 'e3',
       kind: 'note',
@@ -54,7 +54,7 @@ describe('EventThread', () => {
   })
 
   it('posts as tenant-visible when the toggle is switched, and warns before doing so', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     jobsApi.addEvent.mockResolvedValue({
       id: 'e4',
       kind: 'note',
@@ -74,7 +74,7 @@ describe('EventThread', () => {
   })
 
   it('refuses to post an empty update', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     render(<EventThread jobId="j1" events={[]} parties={parties} onPosted={() => {}} />)
     await user.click(screen.getByRole('button', { name: /post update/i }))
     expect(jobsApi.addEvent).not.toHaveBeenCalled()

@@ -1,5 +1,5 @@
 import { Navigate, useLocation } from 'react-router-dom'
-import { useAuth } from '../../lib/auth.jsx'
+import { useAuth } from '../../lib/auth-context.js'
 import { LoadingState } from '../ui/States.jsx'
 
 export default function RequireAuth({ children }) {

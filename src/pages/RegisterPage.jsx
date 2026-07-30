@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { useAuth } from '../lib/auth.jsx'
+import { useAuth } from '../lib/auth-context.js'
 import AuthLayout from './AuthLayout.jsx'
 import { Input, Label } from '../components/ui/Field.jsx'
 import Button from '../components/ui/Button.jsx'

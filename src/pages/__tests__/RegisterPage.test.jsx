@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
+import { setupUser } from '../../test-support/user.js'
 import { MemoryRouter } from 'react-router-dom'
 import RegisterPage from '../RegisterPage.jsx'
 import { AuthProvider } from '../../lib/auth.jsx'
@@ -38,7 +38,7 @@ describe('RegisterPage', () => {
   })
 
   it('shows a dedicated "registration closed" state on a 403, not a generic error', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     authApi.register.mockRejectedValue(new ApiError(403, 'registration is closed on this node'))
     renderRegister()
 
@@ -55,7 +55,7 @@ describe('RegisterPage', () => {
   })
 
   it('surfaces a non-403 failure as an ordinary inline error and keeps the form', async () => {
-    const user = userEvent.setup()
+    const user = setupUser()
     authApi.register.mockRejectedValue(new ApiError(400, 'organisation name is required'))
     renderRegister()
 

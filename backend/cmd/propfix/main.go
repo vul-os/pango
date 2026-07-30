@@ -24,11 +24,22 @@ import (
 	"github.com/vul-os/propfix/backend/internal/repo"
 	"github.com/vul-os/propfix/backend/internal/store"
 	"github.com/vul-os/propfix/backend/internal/sync"
+	"github.com/vul-os/propfix/backend/internal/sync/substrate"
 	"github.com/vul-os/propfix/backend/internal/wrap"
 )
 
 // version is the build's version string, overridable at link time.
 var version = "0.1.0"
+
+// envOr reads an environment variable, falling back to def when it is unset or
+// blank. Used for settings docs/CONFIGURATION.md publishes under an env name and
+// that a flag may also override.
+func envOr(key, def string) string {
+	if v := strings.TrimSpace(os.Getenv(key)); v != "" {
+		return v
+	}
+	return def
+}
 
 func main() {
 	var (
@@ -46,18 +57,34 @@ func main() {
 		syncPeer   = flag.String("sync-peer", "", "comma-separated peer base URLs to sync with on an interval")
 		syncFolder = flag.String("sync-folder", "", "shared folder path for file-transport sync (a synced drive, a NAS mount, a USB stick)")
 		wrapFlag   = flag.Bool("wrap", false, "enable the WRAP trades/v0 binding (github.com/vul-os/wrap) for cross-organisation work")
+
+		// The merge engine is a DEPLOYMENT-WIDE switch, never a gradual
+		// rollout (docs/SYNC.md §10, docs/CONFIGURATION.md). Two engines with
+		// different total orders cannot share a replica set and the failure is
+		// silent divergence rather than an error, so every node of a mesh must
+		// be given the same value here before any of them syncs.
+		// The default comes from PROPFIX_MERGER because that is the name
+		// docs/CONFIGURATION.md already publishes for this setting; the flag
+		// overrides it. Unlike the pairing secret this is not sensitive, so
+		// having it on the command line is fine.
+		mergeEngine = flag.String("merge-engine", envOr("PROPFIX_MERGER", "builtin"),
+			"merge authority: `builtin` (PropFix's own HLC engine) or `substrate` / `dmtap` "+
+				"(the shared DMTAP-SYNC algebra, github.com/vul-os/kotva). Must be the same "+
+				"on every node of a replica set")
 	)
 	flag.Parse()
 
 	// The default listen address is loopback, not 0.0.0.0. A fresh install
 	// talks to nothing and is reachable from nothing (§11); exposing it to a
 	// network is a decision someone makes explicitly.
-	if err := run(*dbPath, *addr, *origins, *demo, *secure, *syncListen, *syncPeer, *syncFolder, *wrapFlag); err != nil {
+	if err := run(*dbPath, *addr, *origins, *demo, *secure, *syncListen, *syncPeer, *syncFolder,
+		*wrapFlag, *mergeEngine); err != nil {
 		log.Fatalf("propfix: %v", err)
 	}
 }
 
-func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syncPeer, syncFolder string, wrapEnabled bool) error {
+func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syncPeer, syncFolder string,
+	wrapEnabled bool, mergeEngine string) error {
 	if demo {
 		// Demo data must never land in a real database. In-memory means the
 		// dataset cannot outlive the process or overwrite anything on disk.
@@ -69,6 +96,44 @@ func run(dbPath, addr, origins string, demo, secureCookies, syncListen bool, syn
 		return fmt.Errorf("open database: %w", err)
 	}
 	defer st.Close()
+
+	// The merge authority is chosen HERE, before a single write is accepted
+	// (docs/SYNC.md §10). It cannot be switched later in the process's life and
+	// it must not differ between nodes of a replica set: two engines with
+	// different notions of element identity cannot share one, and the failure is
+	// silent divergence rather than an error.
+	//
+	// An unrecognised value is fatal rather than defaulted. Defaulting would
+	// mean a typo in a deployment script silently ran the other algebra, which
+	// is exactly the mistake that cannot be detected afterwards.
+	switch mergeEngine {
+	case "builtin":
+		// PropFix's own HLC engine. store.Merger stays nil.
+	case "substrate", "dmtap": // "dmtap" is the spelling docs/CONFIGURATION.md publishes.
+		sub, err := substrate.Open(context.Background(), st, substrate.Options{
+			// Persisting wazero's compiled code turns a few hundred
+			// milliseconds of start-up into a few tens. Optional: with no cache
+			// directory the engine simply compiles on every boot.
+			CacheDir: os.Getenv("PROPFIX_WASM_CACHE"),
+		})
+		if err != nil {
+			return fmt.Errorf("merge engine: %w", err)
+		}
+		defer sub.Close(context.Background())
+		st.SetMerger(sub)
+		v, err := sub.Version()
+		if err != nil {
+			return fmt.Errorf("merge engine version: %w", err)
+		}
+		log.Printf("propfix: merge engine: %s (binding %s, engine %s, substrate %s, "+
+			"skew bound %dms, drift bound above it %s)",
+			substrate.EngineName, v.Binding, v.Engine, v.Substrate, v.HLCSkewMS, sub.MaxDrift())
+	default:
+		return fmt.Errorf(
+			"unknown merge engine %q: expected \"builtin\" or \"substrate\" (alias \"dmtap\"). "+
+				"Refusing to default, because a node that quietly ran the other algebra would "+
+				"diverge from its peers with no error anywhere", mergeEngine)
+	}
 
 	r := repo.New(st)
 	if err := r.PurgeExpiredSessions(); err != nil {
