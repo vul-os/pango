@@ -311,23 +311,7 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 0; }
   transition: transform .2s cubic-bezier(.2,.8,.3,1);
 }
 .nav-links a:hover { color: var(--ink); }
-.nav-links a:hover::after { transform: scaleX(1); }
-
-.vulos-badge {
-  font-family: var(--sans);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 13px;
-  border: 1px solid var(--rule-2);
-  border-radius: 999px;
-  font-size: 13px;
-  color: var(--ink-2);
-  transition: border-color .18s, color .18s;
-}
-.vulos-badge:hover { border-color: var(--accent); color: var(--ink); }
-.vulos-badge img { width: 16px; height: 16px; border-radius: 4px; display: block; }
-@media (max-width: 900px) { .nav-links { display: none; } }
+.nav-links a:hover::after { transform: scaleX(1); }@media (max-width: 900px) { .nav-links { display: none; } }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 

@@ -104,17 +104,16 @@
 @media (max-width: 860px) { .band-grid { grid-template-columns: 1fr; } }
 .band-grid h4 { font-size: 18px; margin: 0 0 8px; }
 .band-grid h4::before { content: "→ "; color: var(--accent); }
-.band-grid p { margin: 0; color: var(--ink-2); font-size: 15.5px; }
-
-/* ── Vulos ───────────────────────────────────────────────────────────────── */
-.vulos { display: flex; gap: 28px; align-items: flex-start; }
-@media (max-width: 700px) { .vulos { flex-direction: column; } }
-.vulos > img { width: 56px; height: 56px; border-radius: 14px; flex: none; display: block; }
-.vulos h3 { margin: 0 0 10px; font-size: 24px; }
-.vulos p { color: var(--ink-2); margin: 0 0 14px; font-size: 16px; max-width: 74ch; }
-.vulos ul { margin: 0 0 14px; padding-left: 20px; color: var(--ink-2); font-size: 15.5px; }
-.vulos li { margin: 4px 0; }
-.vulos li b { color: var(--ink); }
+.band-grid p { margin: 0; color: var(--ink-2); font-size: 15.5px; }  /* ── Vulos suite chrome — identical on every product landing ───────────────
+     Two elements, and only two: a logo-only home button in the top bar, and
+     one line in the footer. Deliberately free of repo variables so the block
+     is byte-identical across the suite and can be diffed as one thing. */
+  .vulos-home { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: 9px; flex: 0 0 auto; opacity: .72; transition: opacity .15s ease, transform .15s ease; }
+  .vulos-home:hover, .vulos-home:focus-visible { opacity: 1; transform: translateY(-1px); }
+  .vulos-home img { display: block; width: 22px; height: 22px; border-radius: 6px; }
+  .vulos-foot { display: inline-flex; align-items: center; gap: 9px; font-size: 13.5px; line-height: 1.45; text-decoration: none; color: inherit; opacity: .85; transition: opacity .15s ease; }
+  .vulos-foot:hover { opacity: 1; text-decoration: none; }
+  .vulos-foot img { display: block; width: 18px; height: 18px; border-radius: 5px; flex: 0 0 auto; }
 </style>
 </head>
 <body>
@@ -133,9 +132,7 @@
     <a href="./docs.html">Docs</a>
     <a href="https://github.com/vul-os/pango" target="_blank" rel="noopener">GitHub</a>
   </nav>
-  <a class="vulos-badge" href="https://vulos.org" target="_blank" rel="noopener" title="Part of VulOS">
-    <img src="./assets/vulos-logo.png" alt="">Part of VulOS
-  </a>
+  <a class="vulos-home" href="https://vulos.org" target="_blank" rel="noopener" title="Vulos — open, self-hostable software" aria-label="Vulos — open, self-hostable software"><img src="./assets/vulos-logo.png" alt="" width="22" height="22"></a>
 </div></header>
 
 <main>
@@ -573,51 +570,17 @@
     </div>
   </div></section>
 
-  <!-- ══ Vulos ═════════════════════════════════════════════════════════════ -->
-  <section class="section" style="padding-top:0"><div class="wrap">
-    <div class="band reveal">
-      <div class="vulos">
-        <img src="./assets/vulos-logo.png" alt="">
-        <div>
-          <h3>Part of VulOS</h3>
-          <p><strong>Vulos publishes one thing: the OS.</strong> The
-             <a class="textlink" href="https://vulos.org" target="_blank" rel="noopener">Vulos OS</a>,
-             all of its apps — Pango included — and the app store are free and open source,
-             dual MIT OR Apache-2.0. You self-host them, on a box you provision and pay
-             for yourself. Vulos does not host boxes and does not bill for anything.</p>
-          <ul>
-            <li><b>Vulos OS</b> — the web-native desktop shell that hosts the apps</li>
-            <li><b>Diwan</b> — documents, sheets, slides, PDF and whiteboards</li>
-            <li><b>Vulos Files</b> — file storage and peer-to-peer sharing</li>
-            <li><b>Ephor</b> — a self-hostable reachability broker your box dials out to</li>
-            <li><b>llmux</b> — sovereign AI gateway</li>
-          </ul>
-          <p><strong>Pango's role</strong> is the property maintenance and inspections app.
-             It runs standalone, and it can be hosted as an app by the Vulos OS — the same
-             binary, with the OS wiring identity and scoped storage in front of it. Those
-             seams are optional by contract: a hard runtime dependency on any of them is
-             forbidden.</p>
-          <a class="textlink" href="https://vulos.org" target="_blank" rel="noopener">Explore VulOS <span class="arrow">→</span></a>
-        </div>
-      </div>
-    </div>
-  </div></section>
 
 </main>
 
 <footer class="site-footer"><div class="wrap">
   <div class="foot">
-    <div class="left">
-      <img src="./assets/vulos-logo.png" alt="">
-      <span>Part of <a href="https://vulos.org" target="_blank" rel="noopener" style="color:var(--ink)">VulOS</a> — open, self-hostable apps. Standalone by design.</span>
-    </div>
+    <a class="vulos-foot" href="https://vulos.org" target="_blank" rel="noopener"><img src="./assets/vulos-logo.png" alt="" width="18" height="18"><span>Part of <strong>Vulos</strong> — open, self-hostable software</span></a>
     <div class="links">
       <a href="./docs.html">Docs</a>
       <a href="./docs.html#getting-started">Getting started</a>
       <a href="./docs.html#faq">FAQ</a>
       <a href="https://github.com/vul-os/pango" target="_blank" rel="noopener">GitHub</a>
-      <a href="./LICENSE.txt">License</a>
-      <a href="https://vulos.org" target="_blank" rel="noopener">vulos.org</a>
     </div>
   </div>
   <p class="foot-note">
