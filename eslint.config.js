@@ -5,8 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
-// The same `varsIgnorePattern`/`argsIgnorePattern` exemption applies to both
-// the plain-JS block (scripts/, e2e/) and the TS block (src/) — see the
+// The same `varsIgnorePattern`/`argsIgnorePattern` exemption applies to the
+// plain-JS block (scripts/) and both TS blocks (src/, e2e/) — see the
 // comment above the JS block's rule for why it exists.
 const jsxUnusedVarsExemption = { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }
 
@@ -55,16 +55,30 @@ export default defineConfig([
     },
   },
   {
-    // Node-context files: scripts/, playwright.config.js, e2e/ and the
-    // top-level tooling configs (vite/tailwind/postcss/eslint) run under
-    // Node (the build tooling / test runner), not the browser.
-    files: [
-      'scripts/**/*.{js,mjs}',
-      'playwright.config.js',
-      'e2e/**/*.{js,jsx}',
-      '*.config.js',
-      'eslint.config.js',
-    ],
+    // The E2E suite (e2e/**), migrated to TypeScript. Mirrors the src block's
+    // TS-aware extends/parser rather than being syntax-only. It runs in Node
+    // (the Playwright test runner and global-setup.ts's build step) but also
+    // authors inline page.evaluate-style callbacks that execute in the page,
+    // so both global sets are legitimate.
+    files: ['e2e/**/*.{ts,tsx}'],
+    extends: [tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', jsxUnusedVarsExemption],
+      // Playwright's fixture API is `async ({ page }, use) => { await use(x) }`.
+      // React also has a `use` hook, so rules-of-hooks sees the call and
+      // demands the enclosing function be a component/hook. It is neither —
+      // this is a test fixture, not React.
+      'react-hooks/rules-of-hooks': 'off',
+    },
+  },
+  {
+    // Node-context files: scripts/, playwright.config.js and the top-level
+    // tooling configs (vite/tailwind/postcss/eslint) run under Node (the
+    // build tooling / test runner), not the browser.
+    files: ['scripts/**/*.{js,mjs}', 'playwright.config.js', '*.config.js', 'eslint.config.js'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
     },
