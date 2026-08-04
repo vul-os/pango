@@ -12,7 +12,7 @@ import { PangoNode } from './helpers/node.js'
 import { login } from './helpers/ui.js'
 
 test.describe('jobs board', () => {
-  let node
+  let node: PangoNode
 
   test.beforeEach(async () => {
     node = await PangoNode.start()
