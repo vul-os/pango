@@ -20,7 +20,7 @@ const SOURCE_DIRS = ['src', 'backend']
 const SOURCE_FILES = ['index.html', 'package.json', 'vite.config.js', 'tailwind.config.js']
 const IGNORED = new Set(['node_modules', 'dist', '.git', 'pango'])
 
-function newestMtime(path) {
+function newestMtime(path: string): number {
   if (!existsSync(path)) return 0
   const st = statSync(path)
   if (!st.isDirectory()) return st.mtimeMs
@@ -32,7 +32,7 @@ function newestMtime(path) {
   return newest
 }
 
-export default function globalSetup() {
+export default function globalSetup(): void {
   if (process.env.PANGO_SKIP_BUILD === '1') {
     if (!existsSync(BIN)) {
       throw new Error(`PANGO_SKIP_BUILD=1 but no binary at ${BIN}`)
