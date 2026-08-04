@@ -4,7 +4,7 @@
 // as Tailwind utilities so app code never reaches for a raw hex.
 export default {
   darkMode: ['class', '[data-theme="dark"]'],
-  content: ['./index.html', './src/**/*.{js,jsx}'],
+  content: ['./index.html', './src/**/*.{js,jsx,ts,tsx}'],
   theme: {
     extend: {
       colors: {

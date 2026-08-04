@@ -14,7 +14,7 @@
     <meta name="color-scheme" content="light dark" />
     <script>
       // Resolve the persisted theme before first paint so there is no
-      // light/dark flash. Mirrors src/lib/theme.js.
+      // light/dark flash. Mirrors src/lib/theme.ts.
       (function () {
         try {
           var t = localStorage.getItem('pango.theme') || 'system'
@@ -30,6 +30,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
