@@ -11,27 +11,48 @@
  * See playwright.config.js and any spec file for why.
  */
 
-import { spawn } from 'child_process'
+import { spawn, type ChildProcessByStdio } from 'child_process'
 import { mkdtempSync, rmSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 import net from 'net'
 import { join, resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import type { Readable } from 'stream'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 export const ROOT = resolve(__dirname, '..', '..')
 export const BIN = process.env.PANGO_BIN || join(ROOT, 'backend', 'pango')
 
+type NodeProc = ChildProcessByStdio<null, Readable, Readable>
+
 /** Ask the OS for a free port. */
-async function freePort() {
+async function freePort(): Promise<number> {
   return new Promise((res, rej) => {
     const srv = net.createServer()
     srv.on('error', rej)
     srv.listen(0, '127.0.0.1', () => {
-      const { port } = srv.address()
+      const address = srv.address()
+      if (address === null || typeof address === 'string') {
+        srv.close(() => rej(new Error(`unexpected server address: ${String(address)}`)))
+        return
+      }
+      const { port } = address
       srv.close(() => res(port))
     })
   })
+}
+
+export interface StartOptions {
+  port?: number
+  demo?: boolean
+  dataDir?: string
+  env?: Record<string, string>
+}
+
+export interface PangoNodeInit {
+  port: number
+  dataDir: string | null
+  proc: NodeProc
 }
 
 /**
@@ -41,7 +62,14 @@ async function freePort() {
  * the browser once there is a UI to drive.
  */
 export class PangoNode {
-  constructor({ port, dataDir, proc }) {
+  port: number
+  dataDir: string | null
+  proc: NodeProc
+  baseURL: string
+  logs: string[]
+  exited?: number | null
+
+  constructor({ port, dataDir, proc }: PangoNodeInit) {
     this.port = port
     this.dataDir = dataDir
     this.proc = proc
@@ -50,7 +78,7 @@ export class PangoNode {
   }
 
   /** Boot a node on a free port, in --demo mode by default (no disk writes). */
-  static async start(opts = {}) {
+  static async start(opts: StartOptions = {}): Promise<PangoNode> {
     if (!existsSync(BIN)) {
       throw new Error(
         `pango binary not found at ${BIN} — run \`npm run build:all\` (global setup does this automatically)`,
@@ -64,17 +92,17 @@ export class PangoNode {
     if (demo) {
       args.push('-demo')
     } else {
-      args.push('-db', join(dataDir, 'pango.db'))
+      args.push('-db', join(dataDir as string, 'pango.db'))
     }
 
-    const proc = spawn(BIN, args, {
+    const proc: NodeProc = spawn(BIN, args, {
       cwd: dataDir || ROOT,
       env: { ...process.env, ...(opts.env || {}) },
       stdio: ['ignore', 'pipe', 'pipe'],
     })
     const node = new PangoNode({ port, dataDir, proc })
-    proc.stdout.on('data', (d) => node.logs.push(String(d)))
-    proc.stderr.on('data', (d) => node.logs.push(String(d)))
+    proc.stdout.on('data', (d: Buffer) => node.logs.push(String(d)))
+    proc.stderr.on('data', (d: Buffer) => node.logs.push(String(d)))
     proc.on('exit', (code) => {
       node.exited = code
     })
@@ -82,7 +110,7 @@ export class PangoNode {
     return node
   }
 
-  async waitReady(timeoutMs = 20000) {
+  async waitReady(timeoutMs = 20000): Promise<void> {
     const deadline = Date.now() + timeoutMs
     while (Date.now() < deadline) {
       if (this.exited !== undefined) {
@@ -99,7 +127,7 @@ export class PangoNode {
     throw new Error(`pango did not become ready on ${this.baseURL}:\n${this.logs.join('')}`)
   }
 
-  async stop() {
+  async stop(): Promise<void> {
     if (this.proc && this.exited === undefined) {
       this.proc.kill('SIGTERM')
       const deadline = Date.now() + 5000
@@ -115,7 +143,7 @@ export class PangoNode {
 
   // ── HTTP client ───────────────────────────────────────────────────────────
 
-  async req(method, path, body) {
+  async req(method: string, path: string, body?: unknown): Promise<unknown> {
     const res = await fetch(`${this.baseURL}${path}`, {
       method,
       headers: body !== undefined ? { 'Content-Type': 'application/json' } : undefined,
@@ -133,21 +161,30 @@ export class PangoNode {
     }
   }
 
-  health() {
+  health(): Promise<unknown> {
     return this.req('GET', '/api/health')
   }
 }
 
+interface UntilOptions {
+  timeout?: number
+  interval?: number
+  message?: string
+}
+
 /** Wait until `fn()` returns truthy, polling. No arbitrary sleeps. */
-export async function until(fn, { timeout = 10000, interval = 50, message } = {}) {
+export async function until<T>(
+  fn: () => T | Promise<T>,
+  { timeout = 10000, interval = 50, message }: UntilOptions = {},
+): Promise<T> {
   const deadline = Date.now() + timeout
-  let last
+  let last: T | string | undefined
   for (;;) {
     try {
       last = await fn()
       if (last) return last
     } catch (err) {
-      last = err.message
+      last = err instanceof Error ? err.message : String(err)
     }
     if (Date.now() > deadline) {
       throw new Error(`timed out waiting for ${message || 'condition'} (last: ${JSON.stringify(last)})`)
