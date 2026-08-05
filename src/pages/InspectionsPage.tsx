@@ -224,7 +224,10 @@ function ScheduleModal({ open, onClose, buildings, onCreated }: ScheduleModalPro
 
   return (
     <Modal open={open} onClose={onClose} title="Schedule an inspection">
-      <form onSubmit={submit} className="flex flex-col gap-3.5">
+      {/* submit catches its own errors into `error`, rendered via
+          InlineError below — this wrap only discards the resolved
+          Promise<void>, it does not swallow a failure. */}
+      <form onSubmit={(e) => { void submit(e) }} className="flex flex-col gap-3.5">
         <InlineError message={error} />
         <FormRow label="Kind" htmlFor="i-kind" required>
           <Select id="i-kind" value={kind} onChange={(e) => setKind(e.target.value as InspectionKind)}>
