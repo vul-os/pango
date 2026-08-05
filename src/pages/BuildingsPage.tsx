@@ -128,7 +128,10 @@ function CreateBuildingModal({ open, onClose, onCreated }: CreateBuildingModalPr
 
   return (
     <Modal open={open} onClose={onClose} title="Add a building">
-      <form onSubmit={submit} className="flex flex-col gap-3.5">
+      {/* submit fully catches its own errors and never rethrows, so this
+          fire-and-forget is safe — wrapped to make the discard explicit for
+          @typescript-eslint/no-misused-promises. */}
+      <form onSubmit={(e) => { void submit(e) }} className="flex flex-col gap-3.5">
         <InlineError message={error} />
         <FormRow label="Name" htmlFor="b-name" required>
           <Input id="b-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Riverside Court" autoFocus />
