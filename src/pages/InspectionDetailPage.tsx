@@ -101,7 +101,10 @@ export default function InspectionDetailPage() {
     <div>
       <button
         type="button"
-        onClick={() => navigate('/inspections')}
+        // navigate() can return a Promise (react-router view-transition
+        // support); void makes the discard explicit for
+        // @typescript-eslint/no-misused-promises.
+        onClick={() => void navigate('/inspections')}
         className="mb-3 flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-ink"
       >
         <ChevronLeftIcon width={14} height={14} />
@@ -126,7 +129,10 @@ export default function InspectionDetailPage() {
         <div className="w-52 shrink-0 rounded-md border border-line bg-surface-raised p-3">
           <InlineError message={statusError} />
           <label className="mb-1 block text-2xs font-medium text-ink-faint">Status</label>
-          <Select value={inspection.status} onChange={(e) => changeStatus(e.target.value)} disabled={statusBusy}>
+          {/* changeStatus catches its own errors into statusError, rendered
+              via InlineError above — this wrap only discards the resolved
+              Promise<void>, it does not swallow a failure. */}
+          <Select value={inspection.status} onChange={(e) => { void changeStatus(e.target.value) }} disabled={statusBusy}>
             {INSPECTION_STATUSES.map((s) => (
               <option key={s} value={s}>
                 {label(s)}
@@ -296,11 +302,14 @@ function ChecklistRunner({ inspectionId, template, findings, onSaved }: Checklis
                         placeholder="Comment"
                         className="flex-1"
                       />
+                      {/* save() catches its own errors into `error`,
+                          rendered via InlineError above — this wrap only
+                          discards the resolved Promise<void>. */}
                       <Button
                         variant="secondary"
                         size="sm"
                         disabled={savingId === item.id}
-                        onClick={() => save(item)}
+                        onClick={() => { void save(item) }}
                       >
                         {savingId === item.id ? 'Saving…' : done ? 'Update' : 'Record'}
                       </Button>
