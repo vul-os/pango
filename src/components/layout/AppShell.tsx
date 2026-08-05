@@ -50,7 +50,10 @@ export default function AppShell() {
 
         <button
           type="button"
-          onClick={() => navigate('/jobs/new')}
+          // navigate() can return a Promise (react-router view-transition
+          // support); void makes the discard explicit for
+          // @typescript-eslint/no-misused-promises.
+          onClick={() => void navigate('/jobs/new')}
           className="mb-5 flex h-9 items-center justify-center gap-1.5 rounded-sm bg-accent text-sm font-medium text-white shadow-e1 transition-colors hover:bg-accent-hover"
         >
           <PlusIcon width={16} height={16} />
@@ -84,7 +87,10 @@ export default function AppShell() {
             </div>
             <button
               type="button"
-              onClick={logout}
+              // logout() now catches its own network errors (auth.tsx) so
+              // this fire-and-forget is safe; wrapped so the discard is
+              // explicit for @typescript-eslint/no-misused-promises.
+              onClick={() => { void logout() }}
               aria-label="Log out"
               title="Log out"
               className="shrink-0 rounded-xs p-1 text-ink-faint hover:bg-surface-sunk hover:text-critical"
