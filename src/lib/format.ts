@@ -45,6 +45,10 @@ export function titleCase(s: string | null | undefined): string {
   return s
     .split(/[_\s-]+/)
     .filter(Boolean)
-    .map((w) => w[0].toUpperCase() + w.slice(1))
+    // charAt(0), not w[0]: filter(Boolean) above already rules out an empty
+    // `w` at runtime, but TS's noUncheckedIndexedAccess can't see across that
+    // filter call, so w[0] still types as `string | undefined`. charAt(0) is
+    // typed `string` unconditionally and is a no-op here either way.
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
 }

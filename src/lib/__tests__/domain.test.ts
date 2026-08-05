@@ -45,7 +45,10 @@ describe('rankByProximity', () => {
 
   it('sorts unsurveyed buildings last regardless of order given', () => {
     const ranked = rankByProximity([unsurveyed, near], origin)
-    expect(ranked[ranked.length - 1].id).toBe('c')
+    // Optional chaining, not a direct index: noUncheckedIndexedAccess types
+    // this access as possibly-undefined; if it ever were, `.toBe('c')` still
+    // fails the assertion correctly (undefined !== 'c').
+    expect(ranked[ranked.length - 1]?.id).toBe('c')
   })
 
   it('is a no-op without an origin', () => {

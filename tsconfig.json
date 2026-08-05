@@ -15,6 +15,14 @@
 
     "strict": true,
     "noUncheckedSideEffectImports": true,
+    // Measured separately (scratch tsconfig, not committed) against
+    // exactOptionalPropertyTypes: this flag found 4 findings, small and two
+    // of them genuine (domain.ts label(), format.ts titleCase() — see their
+    // fixes); exactOptionalPropertyTypes found 8, all mechanical `T |
+    // undefined` widenings on prop interfaces / fetch options with no
+    // runtime behaviour difference at any flagged call site — rejected, not
+    // enabled here.
+    "noUncheckedIndexedAccess": true,
 
     "types": ["vite/client", "vitest/globals", "@testing-library/jest-dom/vitest"]
   },
