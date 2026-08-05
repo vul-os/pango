@@ -99,6 +99,21 @@ export default defineConfig([
     // Node-context files: scripts/, playwright.config.js and the top-level
     // tooling configs (vite/tailwind/postcss/eslint) run under Node (the
     // build tooling / test runner), not the browser.
+    //
+    // NOTE: this block sets languageOptions/turns off one rule but never
+    // `extends: [js.configs.recommended]` — so despite matching this glob,
+    // scripts/**/*.{js,mjs} et al carry ZERO active lint rules (confirmed:
+    // `eslint --print-config` on any file here resolves only
+    // 'react-hooks/rules-of-hooks': 'off', and an injected unused-var probe
+    // went unflagged). That's a hollow-gate risk this whole cleanup exists to
+    // catch elsewhere in the fleet, present here too. Not widened in this
+    // pass: scripts/qa-shots.mjs and scripts/screenshots.mjs both embed
+    // Playwright page.evaluate() callbacks using browser-only globals
+    // alongside Node ones (hence the `{...node, ...browser}` merge above) —
+    // adding js.configs.recommended fleet-wide here needs those two files'
+    // real issues triaged first, not a blind extends. See the dedicated
+    // check-lint-config.mjs-only block below for the one file this cleanup
+    // pass is actually about.
     files: ['scripts/**/*.{js,mjs}', 'playwright.config.js', '*.config.js', 'eslint.config.js'],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
@@ -108,6 +123,19 @@ export default defineConfig([
       // React also has a `use` hook, so rules-of-hooks sees the call and
       // demands the enclosing function be a component/hook. It is neither.
       'react-hooks/rules-of-hooks': 'off',
+    },
+  },
+  {
+    // check-lint-config.mjs specifically: bring it under real rules without
+    // touching the shared Node-context block above (which, per the note
+    // there, can't safely gain js.configs.recommended fleet-wide yet). This
+    // is the one file this cleanup pass targets — genuinely linted below,
+    // verified via an injected unused-var probe (now flagged, previously
+    // wasn't).
+    files: ['scripts/check-lint-config.mjs'],
+    extends: [js.configs.recommended],
+    languageOptions: {
+      globals: globals.node,
     },
   },
 ])
