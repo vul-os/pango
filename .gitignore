@@ -24,7 +24,7 @@ data/
 # Test artefacts
 test-results/
 playwright-report/
-e2e/.auth/
+web/tests/e2e/.auth/
 qa-shots/
 
 # Agent tooling

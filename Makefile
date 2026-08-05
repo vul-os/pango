@@ -5,9 +5,10 @@ VERSION := $(shell cat VERSION 2>/dev/null || echo dev)
         screenshots qa-shots notices check run
 
 # UI-only dev loop: Vite dev server + hot reload, proxying /api to a
-# separately-running backend (see `make dev-app`).
+# separately-running backend (see `make dev-app`). The frontend project
+# (package.json, src/, ...) lives under web/.
 dev:
-	npm run dev
+	cd web && npm run dev
 
 # Go server, no embedded frontend — pairs with `make dev` (or a browser
 # pointed straight at :8099/api/...).
@@ -22,7 +23,7 @@ build: build-frontend
 	./scripts/build-embedded.sh
 
 build-frontend:
-	npm run build
+	cd web && npm run build
 
 # Tests
 test: test-go test-e2e
@@ -93,29 +94,23 @@ endif
 	  go test -count=1 -v -run TestFrozenSyncVectors ./internal/sync/substrate/
 
 # Browser end-to-end tests against the real binary (builds it if stale, see
-# e2e/global-setup.js). Needs `npx playwright install chromium` once.
-#
-# NOTE: currently every spec in e2e/ is skipped — the binary built here does
-# not yet serve the app UI (see the `build` target note above), so there is
-# nothing for Playwright to drive. The harness itself (global-setup, node
-# helper, playwright.config.js) is real and runs; only the specs are stubs
-# pending the frontend landing.
+# web/tests/e2e/global-setup.ts). Needs `npx playwright install chromium`
+# once.
 test-e2e:
-	npx playwright test
+	cd web && npx playwright test
 
 lint:
-	npm run lint
+	cd web && npm run lint
 
-# Screenshots for docs/README (docs/screenshots/). Drives `./pango --demo`
-# via Playwright. Same caveat as test-e2e: produces nothing useful until the
-# binary serves the app UI — see scripts/screenshots.mjs's own guard.
+# Screenshots for docs/README (docs/screenshots/). Drives `../backend/pango
+# --demo` via Playwright — see web/scripts/screenshots.mjs's own guard.
 screenshots:
-	npm run screenshots
+	cd web && npm run screenshots
 
 # Every route x 3 widths x both themes into a gitignored scratch dir, for
 # manual visual QA. Not part of `check`.
 qa-shots:
-	npm run qa-shots
+	cd web && npm run qa-shots
 
 # Regenerate THIRD-PARTY-NOTICES.txt (root) + site/licenses.txt from the real
 # dependency graph (Go modules + npm + vendored site assets). Served at

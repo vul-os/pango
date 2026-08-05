@@ -20,7 +20,10 @@ import { fileURLToPath } from 'url'
 import type { Readable } from 'stream'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-export const ROOT = resolve(__dirname, '..', '..')
+// __dirname is web/tests/e2e/helpers. WEB_ROOT (web/) is three levels up;
+// ROOT (the repo root, where the backend/ Go module lives) is four.
+export const WEB_ROOT = resolve(__dirname, '..', '..', '..')
+export const ROOT = resolve(__dirname, '..', '..', '..', '..')
 export const BIN = process.env.PANGO_BIN || join(ROOT, 'backend', 'pango')
 
 type NodeProc = ChildProcessByStdio<null, Readable, Readable>

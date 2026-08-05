@@ -62,17 +62,19 @@ make --no-print-directory sync-conformance-status || true
 # docs viewer fetches at runtime. Nothing else re-runs the copy, so editing
 # docs/ without re-running it publishes stale text with no signal — the exact
 # drift the script's header describes. --check exits 1 on drift, 0 in sync.
+#
+# The frontend project (package.json and everything npm) lives under web/.
 step "docs: site mirror in sync"
-npm run docs:check || fail=1
+( cd web && npm run docs:check ) || fail=1
 
 step "frontend: lint"
-npm run lint || fail=1
+( cd web && npm run lint ) || fail=1
 
 step "frontend: test"
-npm test || fail=1
+( cd web && npm test ) || fail=1
 
 step "frontend: build"
-npm run build || fail=1
+( cd web && npm run build ) || fail=1
 
 # The release verifier and the installer both refuse to install unverified
 # bytes. Those refusals are the whole product; run the synthetic-origin matrix

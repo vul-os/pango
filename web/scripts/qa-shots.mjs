@@ -22,7 +22,10 @@ import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const ROOT = resolve(__dirname, '..')
+// __dirname is web/scripts. WEB_ROOT (web/, where package.json/src/ live) is
+// one level up; ROOT (the repo root, where backend/ lives) is two.
+const WEB_ROOT = resolve(__dirname, '..')
+const ROOT = resolve(__dirname, '..', '..')
 const BIN = join(ROOT, 'backend', 'pango')
 const PORT = process.env.PANGO_SCREENSHOT_PORT || 28899
 const BASE_URL = `http://127.0.0.1:${PORT}`
@@ -66,11 +69,12 @@ function newestMtime(path, ignored = new Set(['node_modules', 'dist', '.git', 'p
 }
 
 function ensureBinary() {
-  const sources = ['src', 'backend', 'index.html', 'package.json', 'vite.config.js'].map((p) => join(ROOT, p))
-  const srcAge = Math.max(...sources.map((p) => newestMtime(p)))
+  const webSources = ['src', 'index.html', 'package.json', 'vite.config.js'].map((p) => join(WEB_ROOT, p))
+  const rootSources = ['backend'].map((p) => join(ROOT, p))
+  const srcAge = Math.max(...[...webSources, ...rootSources].map((p) => newestMtime(p)))
   if (existsSync(BIN) && statSync(BIN).mtimeMs >= srcAge) return
   console.log('  building pango (frontend + site embedded)…')
-  execSync('npm run build:all', { cwd: ROOT, stdio: 'inherit' })
+  execSync('npm run build:all', { cwd: WEB_ROOT, stdio: 'inherit' })
 }
 
 async function ensureServer() {

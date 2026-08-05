@@ -14,10 +14,13 @@
 import { execSync } from 'child_process'
 import { existsSync, statSync, readdirSync } from 'fs'
 import { join } from 'path'
-import { BIN, ROOT } from './helpers/node.js'
+import { BIN, ROOT, WEB_ROOT } from './helpers/node.js'
 
-const SOURCE_DIRS = ['src', 'backend']
-const SOURCE_FILES = ['index.html', 'package.json', 'vite.config.js', 'tailwind.config.js']
+// 'backend' is the Go module and lives at the repo root; everything else
+// that can go stale is the frontend project, which lives under web/.
+const ROOT_SOURCE_DIRS = ['backend']
+const WEB_SOURCE_DIRS = ['src']
+const WEB_SOURCE_FILES = ['index.html', 'package.json', 'vite.config.js', 'tailwind.config.js']
 const IGNORED = new Set(['node_modules', 'dist', '.git', 'pango'])
 
 function newestMtime(path: string): number {
@@ -43,8 +46,9 @@ export default function globalSetup(): void {
   if (existsSync(BIN)) {
     const binAge = statSync(BIN).mtimeMs
     const srcAge = Math.max(
-      ...SOURCE_DIRS.map((d) => newestMtime(join(ROOT, d))),
-      ...SOURCE_FILES.map((f) => newestMtime(join(ROOT, f))),
+      ...ROOT_SOURCE_DIRS.map((d) => newestMtime(join(ROOT, d))),
+      ...WEB_SOURCE_DIRS.map((d) => newestMtime(join(WEB_ROOT, d))),
+      ...WEB_SOURCE_FILES.map((f) => newestMtime(join(WEB_ROOT, f))),
     )
     if (binAge >= srcAge) {
       console.log('e2e: reusing up-to-date pango binary')
@@ -53,5 +57,5 @@ export default function globalSetup(): void {
   }
 
   console.log('e2e: building pango (frontend + site embedded)…')
-  execSync('npm run build:all', { cwd: ROOT, stdio: 'inherit' })
+  execSync('npm run build:all', { cwd: WEB_ROOT, stdio: 'inherit' })
 }

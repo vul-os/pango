@@ -1,21 +1,16 @@
 # Build the single embedded binary, then ship it on a minimal base.
 #
 # NOTE ON THE APP EMBED (read before relying on this image):
-# backend/cmd/pango currently only embeds the marketing/docs site
-# (site/ -> served at /site/, see backend/cmd/pango/site_embed.go, build
-# tag `embed_frontend`). There is no //go:embed for the built React app
-# (dist/) yet, and main.go registers no "/" route — so the app UI is not
-# served by this image today. The frontend build stage below still runs and
-# its output is copied into the backend build context so that the day a
-# dist embed lands (mirroring site_embed.go's pattern), this Dockerfile picks
-# it up with no changes: go tolerates a directory under a package that no
-# go:embed directive references. Until then, this image serves the full
-# /api/ surface and the marketing site at /site/.
+# backend/cmd/pango embeds both the marketing/docs site (site/ -> served at
+# /site/, see backend/cmd/pango/site_embed.go) and the built React app
+# (web/dist/ -> served at "/", see backend/cmd/pango/app_embed.go), both
+# behind the `embed_frontend` build tag. The frontend project lives under
+# web/ (its own package.json, src/, ...) alongside the backend/ Go module.
 FROM node:20-bookworm AS frontend
-WORKDIR /app
-COPY package.json package-lock.json ./
+WORKDIR /app/web
+COPY web/package.json web/package-lock.json ./
 RUN npm ci
-COPY . .
+COPY web/ .
 RUN npm run build
 
 FROM golang:1.25-bookworm AS backend
@@ -25,8 +20,8 @@ RUN cd backend && go mod download
 COPY . .
 # Marketing site, embedded today (see site_embed.go).
 RUN rm -rf backend/cmd/pango/site && cp -R site backend/cmd/pango/site
-# App bundle, staged for when the embed exists (see the note above).
-COPY --from=frontend /app/dist ./backend/cmd/pango/dist
+# Built app, embedded today (see app_embed.go).
+COPY --from=frontend /app/web/dist ./backend/cmd/pango/dist
 ARG VERSION=docker
 RUN cd backend && CGO_ENABLED=0 go build -tags embed_frontend \
     -ldflags "-s -w -X main.version=${VERSION}" \

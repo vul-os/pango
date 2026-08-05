@@ -64,10 +64,11 @@ fi
   -noticeOut "$TMP/go-notices.txt"
 
 # --- npm packages actually declared for the app (production deps only).
+# The frontend project (and its package.json/node_modules) lives under web/.
 echo "==> resolving npm dependency graph"
-[[ -d node_modules ]] || npm ci
+[[ -d web/node_modules ]] || (cd web && npm ci)
 npx --yes license-checker-rseidelsohn \
-  --production --json --excludePrivatePackages --start . \
+  --production --json --excludePrivatePackages --start web \
   | node scripts/notices/npm-notices.mjs > "$TMP/npm-notices.txt"
 
 echo "==> composing $OUT"
