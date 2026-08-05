@@ -39,16 +39,26 @@ export default defineConfig([
     },
   },
   {
-    // src/ is TypeScript. `tseslint.configs.recommended` swaps in the
-    // typescript-eslint parser (so type annotations/generics/JSX-in-TSX all
-    // parse) and its own type-aware-but-not-project-wide rule set; it also
-    // turns the core `no-unused-vars` off in favour of the
+    // src/ is TypeScript. `tseslint.configs.recommendedTypeChecked` swaps in
+    // the typescript-eslint parser (so type annotations/generics/JSX-in-TSX
+    // all parse) and, via `parserOptions.projectService` below, actually
+    // resolves type information from tsconfig.json — this is what makes
+    // no-floating-promises and the no-unsafe-* family run at all. Without
+    // `projectService` (the plain, untyped `recommended` set this repo used
+    // to ship) typescript-eslint resolves zero type information and every
+    // type-aware rule is silently absent — that gap is exactly what let this
+    // repo's 220-error, 120-implicit-any .jsx→.tsx rename pass lint green.
+    // It also turns the core `no-unused-vars` off in favour of the
     // `@typescript-eslint` version, which needs the same exemption as the JS
     // block above for the same JSX-identifier reason.
     files: ['src/**/*.{ts,tsx}'],
-    extends: [tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    extends: [tseslint.configs.recommendedTypeChecked, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     languageOptions: {
       globals: globals.browser,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', jsxUnusedVarsExemption],
@@ -56,14 +66,19 @@ export default defineConfig([
   },
   {
     // The E2E suite (e2e/**), migrated to TypeScript. Mirrors the src block's
-    // TS-aware extends/parser rather than being syntax-only. It runs in Node
-    // (the Playwright test runner and global-setup.ts's build step) but also
-    // authors inline page.evaluate-style callbacks that execute in the page,
-    // so both global sets are legitimate.
+    // TS-aware extends/parser (including projectService — e2e/ is covered by
+    // the same tsconfig.json `include`) rather than being syntax-only. It
+    // runs in Node (the Playwright test runner and global-setup.ts's build
+    // step) but also authors inline page.evaluate-style callbacks that
+    // execute in the page, so both global sets are legitimate.
     files: ['e2e/**/*.{ts,tsx}'],
-    extends: [tseslint.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
+    extends: [tseslint.configs.recommendedTypeChecked, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', jsxUnusedVarsExemption],
