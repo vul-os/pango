@@ -73,8 +73,14 @@ async function request<T>(path: string, { method = 'GET', body, signal }: Reques
     // expression — the chain's own inferred type (a union of every
     // short-circuited operand, unknown included) is what a plain `||`
     // fallback can't narrow back down to `string`.
+    //
+    // No cast needed on `data.error` itself: TS's `in`-operator narrowing
+    // (4.9+) already gives `data` a `{ error: unknown }` shape once
+    // `'error' in data` has been checked, so a `(data as { error: unknown })`
+    // reassertion here was flagged as unnecessary by
+    // @typescript-eslint/no-unnecessary-type-assertion — it changed nothing.
     let message = `Request failed (${res.status})`
-    if (data && typeof data === 'object' && 'error' in data && typeof (data as { error: unknown }).error === 'string') {
+    if (data && typeof data === 'object' && 'error' in data && typeof data.error === 'string') {
       message = (data as { error: string }).error
     }
     throw new ApiError(res.status, message)
@@ -91,11 +97,17 @@ export const api = {
   del: <T>(path: string, opts?: RequestOpts) => request<T>(path, { ...opts, method: 'DELETE' }),
 }
 
-// Accepts any plain object of filter/query values — typed as `unknown` per
-// value rather than a closed union so callers can pass a precise interface
-// (e.g. JobsFilter) without that interface needing an index signature of its
-// own just to satisfy this one internal helper.
-function qs(params?: Record<string, unknown>): string {
+// Accepts any plain object of filter/query values — typed as a primitive
+// union per value rather than a closed union so callers can pass a precise
+// interface (e.g. JobsFilter) without that interface needing an index
+// signature of its own just to satisfy this one internal helper. Previously
+// this was `unknown`, which let @typescript-eslint/no-base-to-string flag
+// `String(v)` below: `unknown` admits plain objects, and `String({})` silently
+// produces "[object Object]" instead of an error — a real (if only ever
+// latent, since every current caller already passes primitives) corruption
+// path for whatever value ends up on the querystring. Narrowing to the types
+// a URL param can actually mean closes that off at the type level.
+function qs(params?: Record<string, string | number | boolean | null | undefined>): string {
   const usp = new URLSearchParams()
   for (const [k, v] of Object.entries(params || {})) {
     if (v !== undefined && v !== null && v !== '') usp.set(k, String(v))

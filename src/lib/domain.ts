@@ -123,6 +123,12 @@ export function label(s: string | null | undefined): string {
   if (!s) return '—'
   return s
     .split('_')
-    .map((w) => w[0].toUpperCase() + w.slice(1))
+    // charAt(0), not w[0]: a leading/trailing/doubled "_" in `s` (this fn has
+    // no guard against that, unlike titleCase() below) produces an empty
+    // segment here, and w[0] on an empty string is `undefined` —
+    // .toUpperCase() on that throws at runtime. charAt(0) returns '' instead,
+    // which keeps this a no-crash no-op for that segment. Caught by
+    // noUncheckedIndexedAccess; not just a type annotation issue.
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(' ')
 }

@@ -105,7 +105,10 @@ export default function EventThread({ jobId, events, parties, onPosted }: EventT
         </ol>
       )}
 
-      <form onSubmit={submit} className="rounded-md border border-line bg-surface-sunk/60 p-3">
+      {/* submit catches its own errors into `error`, rendered via
+          InlineError below — this wrap only discards the resolved
+          Promise<void>. */}
+      <form onSubmit={(e) => { void submit(e) }} className="rounded-md border border-line bg-surface-sunk/60 p-3">
         <InlineError message={error} />
         <Textarea
           value={body}

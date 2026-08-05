@@ -55,7 +55,11 @@ describe('CostLedger', () => {
     await user.click(screen.getByRole('button', { name: /^add entry$/i }))
 
     expect(mockedAddCost).toHaveBeenCalledTimes(1)
-    const [, body] = mockedAddCost.mock.calls[0]
+    // toHaveBeenCalledTimes(1) above proves this call exists; noUncheckedIndexedAccess
+    // still types the array access as possibly-undefined, so narrow explicitly.
+    const call = mockedAddCost.mock.calls[0]
+    if (!call) throw new Error('addCost was not called')
+    const [, body] = call
     expect(body.amount_minor).toBe(28550)
     expect(Number.isInteger(body.amount_minor)).toBe(true)
     expect(onAdded).toHaveBeenCalled()
@@ -78,7 +82,11 @@ describe('CostLedger', () => {
     await user.type(screen.getByPlaceholderText(/450\.00/), '-450.00')
     await user.click(screen.getByRole('button', { name: /^add entry$/i }))
 
-    const [, body] = mockedAddCost.mock.calls[0]
+    // noUncheckedIndexedAccess types this access as possibly-undefined;
+    // narrow explicitly rather than asserting the click above landed.
+    const call = mockedAddCost.mock.calls[0]
+    if (!call) throw new Error('addCost was not called')
+    const [, body] = call
     expect(body.amount_minor).toBe(-45000)
   })
 

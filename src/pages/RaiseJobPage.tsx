@@ -52,7 +52,10 @@ export default function RaiseJobPage() {
         category: category.trim(),
         reporter_party_id: '',
       })
-      navigate(`/jobs/${job.id}`, { replace: true })
+      // navigate()'s return type is `void | Promise<void>` — un-awaited, a
+      // rejection would surface after this try/catch has already exited.
+      // Same finding, same fix as LoginPage.tsx's onSubmit.
+      await navigate(`/jobs/${job.id}`, { replace: true })
     } catch (err) {
       setSubmitError((err instanceof Error && err.message) || 'Could not raise the job.')
     } finally {
@@ -64,7 +67,11 @@ export default function RaiseJobPage() {
     <div className="mx-auto max-w-xl">
       <button
         type="button"
-        onClick={() => navigate('/jobs')}
+        // navigate() can return a Promise (react-router view-transition
+        // support); the `void` makes the discard explicit for
+        // @typescript-eslint/no-misused-promises rather than leaving an
+        // implicit Promise-returning arrow on a void-typed attribute.
+        onClick={() => void navigate('/jobs')}
         className="mb-3 flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-ink"
       >
         <ChevronLeftIcon width={14} height={14} />
@@ -138,7 +145,11 @@ export default function RaiseJobPage() {
               Continue
             </Button>
           ) : (
-            <Button variant="primary" onClick={submit} disabled={submitting || !title.trim() || !buildingId}>
+            // submit already catches its own errors (including the now-
+            // awaited navigate above) and never rethrows — wrapped so the
+            // fire-and-forget is explicit rather than an implicit Promise-
+            // returning handler on a void-typed onClick.
+            <Button variant="primary" onClick={() => { void submit() }} disabled={submitting || !title.trim() || !buildingId}>
               {submitting ? 'Raising job…' : 'Raise job'}
             </Button>
           )}

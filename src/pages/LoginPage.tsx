@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate, type Location } from 'react-router-dom'
 import { useAuth } from '../lib/auth-context'
 import { ApiError } from '../lib/api'
 import AuthLayout from './AuthLayout'
@@ -26,8 +26,21 @@ export default function LoginPage() {
     setBusy(true)
     try {
       await login(email.trim(), password)
-      const dest = location.state?.from?.pathname || '/jobs'
-      navigate(dest, { replace: true })
+      // react-router types `Location.state` as `any` — it's arbitrary caller
+      // data with no static link back to what RequireAuth actually put there
+      // (`state={{ from: location }}`, see RequireAuth.tsx). Asserting to
+      // that known shape here — rather than reading through the `any` —
+      // is what closed the no-unsafe-assignment/no-unsafe-member-access/
+      // no-unsafe-argument findings type-aware linting raised on this line.
+      const state = location.state as { from?: Location } | null
+      const dest = state?.from?.pathname || '/jobs'
+      // navigate()'s return type is `void | Promise<void>` (react-router
+      // supports awaiting view-transition navigations). Un-awaited inside
+      // this try, a rejection would surface after the try/catch above has
+      // already exited — an actual unhandled rejection, not one the catch
+      // block here would ever see. @typescript-eslint/no-floating-promises
+      // caught this.
+      await navigate(dest, { replace: true })
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not sign in.')
     } finally {
@@ -48,7 +61,12 @@ export default function LoginPage() {
         </>
       }
     >
-      <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
+      {/* onSubmit fully catches its own errors (see above) and never
+          rethrows, so the fire-and-forget here is safe — but its declared
+          return type is still Promise<void>, which is what
+          @typescript-eslint/no-misused-promises checks against a `void`-
+          expecting attribute. Wrapping makes the discard explicit. */}
+      <form onSubmit={(e) => { void onSubmit(e) }} className="flex flex-col gap-3.5" noValidate>
         <InlineError message={error} />
         <div>
           <Label htmlFor="email">Email</Label>
