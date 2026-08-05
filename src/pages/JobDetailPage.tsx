@@ -79,7 +79,10 @@ export default function JobDetailPage() {
     <div>
       <button
         type="button"
-        onClick={() => navigate('/jobs')}
+        // navigate() can return a Promise (react-router view-transition
+        // support); void makes the discard explicit for
+        // @typescript-eslint/no-misused-promises.
+        onClick={() => void navigate('/jobs')}
         className="mb-3 flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-ink"
       >
         <ChevronLeftIcon width={14} height={14} />
@@ -117,7 +120,10 @@ export default function JobDetailPage() {
         <div className="w-64 shrink-0 rounded-md border border-line bg-surface-raised p-3">
           <InlineError message={statusError} />
           <label className="mb-1 block text-2xs font-medium text-ink-faint">Status</label>
-          <Select value={job.status} onChange={(e) => changeStatus(e.target.value)} disabled={statusBusy} className="mb-3">
+          {/* changeStatus catches its own errors into statusError, rendered
+              via InlineError above — this wrap only discards the resolved
+              Promise<void>. */}
+          <Select value={job.status} onChange={(e) => { void changeStatus(e.target.value) }} disabled={statusBusy} className="mb-3">
             <option value={job.status}>{label(job.status)} (current)</option>
             {nextStatuses(job.status).map((s) => (
               <option key={s} value={s}>
@@ -127,7 +133,10 @@ export default function JobDetailPage() {
           </Select>
 
           <label className="mb-1 block text-2xs font-medium text-ink-faint">Assignee</label>
-          <Select value={job.assignee_party_id || ''} onChange={(e) => changeAssignee(e.target.value)} disabled={assignBusy}>
+          {/* changeAssignee catches its own errors into statusError (shared
+              with changeStatus above), rendered via InlineError — this wrap
+              only discards the resolved Promise<void>. */}
+          <Select value={job.assignee_party_id || ''} onChange={(e) => { void changeAssignee(e.target.value) }} disabled={assignBusy}>
             <option value="">Unassigned</option>
             {parties.map((p) => (
               <option key={p.id} value={p.id}>
