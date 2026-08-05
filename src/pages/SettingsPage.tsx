@@ -82,7 +82,10 @@ function PeopleSection() {
     <Card className="p-4">
       <CardHeader title="People" subtitle="Staff, contractors and tenants — assignable to jobs and inspections." />
       <div className="pt-3">
-        <form onSubmit={submit} className="mb-4 flex flex-wrap items-end gap-2">
+        {/* submit catches its own errors into `error`, rendered via
+            InlineError below — this wrap only discards the resolved
+            Promise<void>. */}
+        <form onSubmit={(e) => { void submit(e) }} className="mb-4 flex flex-wrap items-end gap-2">
           <div className="w-28">
             <label className="mb-1 block text-2xs font-medium text-ink-faint">Kind</label>
             <Select value={kind} onChange={(e) => setKind(e.target.value as PartyKind)}>
@@ -200,7 +203,10 @@ function TemplatesSection() {
       />
       <div className="pt-3">
         {creating && (
-          <form onSubmit={submit} className="mb-4 rounded-md border border-line bg-surface-sunk/60 p-3">
+          // submit catches its own errors into `error`, rendered via
+          // InlineError below — this wrap only discards the resolved
+          // Promise<void>.
+          <form onSubmit={(e) => { void submit(e) }} className="mb-4 rounded-md border border-line bg-surface-sunk/60 p-3">
             <InlineError message={error} />
             <div className="mb-2 flex gap-2">
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Template name" className="flex-1 bg-surface-raised" />
@@ -300,7 +306,10 @@ function PeersSection() {
     <Card className="p-4">
       <CardHeader title="Sync peers" subtitle="Manually enrolled nodes this org syncs its oplog with directly — no hub, no control plane." />
       <div className="pt-3">
-        <form onSubmit={submit} className="mb-4 flex flex-wrap items-end gap-2">
+        {/* submit catches its own errors into `error`, rendered via
+            InlineError below — this wrap only discards the resolved
+            Promise<void>. */}
+        <form onSubmit={(e) => { void submit(e) }} className="mb-4 flex flex-wrap items-end gap-2">
           <div className="min-w-[140px] flex-1">
             <label className="mb-1 block text-2xs font-medium text-ink-faint">Name</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Branch office" />
@@ -332,7 +341,12 @@ function PeersSection() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Pill tone={p.enabled ? 'good' : 'neutral-muted'}>{p.enabled ? 'Enabled' : 'Disabled'}</Pill>
-                  <button type="button" onClick={() => remove(p.id)} className="text-xs text-critical hover:underline">
+                  {/* remove() already swallows its own failure deliberately
+                      (see the comment on its definition above) — pre-existing
+                      behaviour, unchanged here. This wrap only discards the
+                      resolved Promise<void> for
+                      @typescript-eslint/no-misused-promises. */}
+                  <button type="button" onClick={() => { void remove(p.id) }} className="text-xs text-critical hover:underline">
                     Remove
                   </button>
                 </div>
