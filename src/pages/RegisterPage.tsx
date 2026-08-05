@@ -29,7 +29,11 @@ export default function RegisterPage() {
     setBusy(true)
     try {
       await register(form)
-      navigate('/jobs', { replace: true })
+      // navigate()'s return type is `void | Promise<void>` — un-awaited, a
+      // rejection would surface after this try/catch has already exited,
+      // as a real unhandled rejection rather than anything caught below.
+      // Same finding, same fix as LoginPage.tsx's onSubmit.
+      await navigate('/jobs', { replace: true })
     } catch (err) {
       if (err instanceof ApiError && err.registrationClosed) {
         setClosed(true)
@@ -74,7 +78,10 @@ export default function RegisterPage() {
         </>
       }
     >
-      <form onSubmit={onSubmit} className="flex flex-col gap-3.5" noValidate>
+      {/* onSubmit fully catches its own errors and never rethrows, so this
+          fire-and-forget is safe — wrapped to make the discard explicit for
+          @typescript-eslint/no-misused-promises (attribute expects void). */}
+      <form onSubmit={(e) => { void onSubmit(e) }} className="flex flex-col gap-3.5" noValidate>
         <InlineError message={error} />
         <div>
           <Label htmlFor="organisation">Organisation</Label>
