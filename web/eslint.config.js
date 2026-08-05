@@ -11,7 +11,13 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 const jsxUnusedVarsExemption = { varsIgnorePattern: '^[A-Z_]', argsIgnorePattern: '^[A-Z_]' }
 
 export default defineConfig([
-  globalIgnores(['dist', 'site/assets/vendor/**', 'backend/**']),
+  // 'site/assets/vendor/**' and 'backend/**' used to guard against `eslint .`
+  // reaching those repo-root directories when this config lived at the repo
+  // root too. Now that eslint.config.js (and the `npm run lint` invocation)
+  // live under web/, ESLint's flat-config globs are already scoped relative
+  // to this directory and can never reach a sibling backend/ or site/ — so
+  // those two entries would be dead weight, not a needed guard.
+  globalIgnores(['dist']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [js.configs.recommended, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
@@ -65,13 +71,13 @@ export default defineConfig([
     },
   },
   {
-    // The E2E suite (e2e/**), migrated to TypeScript. Mirrors the src block's
-    // TS-aware extends/parser (including projectService — e2e/ is covered by
-    // the same tsconfig.json `include`) rather than being syntax-only. It
-    // runs in Node (the Playwright test runner and global-setup.ts's build
-    // step) but also authors inline page.evaluate-style callbacks that
-    // execute in the page, so both global sets are legitimate.
-    files: ['e2e/**/*.{ts,tsx}'],
+    // The E2E suite (tests/e2e/**), migrated to TypeScript. Mirrors the src
+    // block's TS-aware extends/parser (including projectService — tests/e2e/
+    // is covered by the same tsconfig.json `include`) rather than being
+    // syntax-only. It runs in Node (the Playwright test runner and
+    // global-setup.ts's build step) but also authors inline page.evaluate-style
+    // callbacks that execute in the page, so both global sets are legitimate.
+    files: ['tests/e2e/**/*.{ts,tsx}'],
     extends: [tseslint.configs.recommendedTypeChecked, reactHooks.configs.flat.recommended, reactRefresh.configs.vite],
     languageOptions: {
       globals: { ...globals.node, ...globals.browser },

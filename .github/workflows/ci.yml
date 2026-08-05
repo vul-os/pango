@@ -66,6 +66,10 @@ jobs:
   frontend:
     name: Frontend (docs, test, lint, build)
     runs-on: ubuntu-latest
+    # The frontend project (package.json, src/, ...) lives under web/.
+    defaults:
+      run:
+        working-directory: web
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -76,7 +80,9 @@ jobs:
       # site/docs/ is a generated mirror of docs/ (scripts/sync-docs.mjs) that
       # the docs viewer fetches at runtime. Nothing else re-runs the copy, so
       # editing docs/ without re-running it publishes stale text silently.
-      # --check exits 1 on drift, 0 in sync.
+      # --check exits 1 on drift, 0 in sync. sync-docs.mjs itself stays at the
+      # repo-root scripts/ (it reaches root-level docs/ and site/, not just
+      # the frontend), so the npm script reaches it via a relative ../ path.
       - name: Docs mirror in sync
         run: npm run docs:check
       # The vitest suite exists and passes but was not wired in here, so

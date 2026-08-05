@@ -78,6 +78,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
+          cache-dependency-path: web/package-lock.json
 
       - uses: actions/setup-go@v5
         with:
@@ -85,10 +86,13 @@ jobs:
           cache: true
           cache-dependency-path: backend/go.sum
 
+      # The frontend project (package.json, src/, ...) lives under web/.
       - run: npm ci
+        working-directory: web
 
       - name: Build frontend
         run: npm run build
+        working-directory: web
 
       - name: Build binary
         env:
@@ -98,7 +102,7 @@ jobs:
         run: |
           rm -rf backend/cmd/pango/site backend/cmd/pango/dist
           cp -R site backend/cmd/pango/site
-          cp -R dist backend/cmd/pango/dist
+          cp -R web/dist backend/cmd/pango/dist
 
           VERSION="${GITHUB_REF_NAME#v}"
           EXT=""

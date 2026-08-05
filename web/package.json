@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:all": "vite build && cp -r site backend/cmd/pango/site && cp -r dist backend/cmd/pango/dist && cd backend && go build -tags embed_frontend -ldflags \"-X main.version=$npm_package_version\" -o pango ./cmd/pango && cd .. && rm -rf backend/cmd/pango/site backend/cmd/pango/dist",
+    "build:all": "vite build && cd .. && cp -r site backend/cmd/pango/site && cp -r web/dist backend/cmd/pango/dist && cd backend && go build -tags embed_frontend -ldflags \"-X main.version=$npm_package_version\" -o pango ./cmd/pango && cd .. && rm -rf backend/cmd/pango/site backend/cmd/pango/dist",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
@@ -26,8 +26,8 @@
     "test:e2e:report": "playwright show-report",
     "screenshots": "node scripts/screenshots.mjs",
     "qa-shots": "node scripts/qa-shots.mjs",
-    "docs:sync": "node scripts/sync-docs.mjs",
-    "docs:check": "node scripts/sync-docs.mjs --check"
+    "docs:sync": "node ../scripts/sync-docs.mjs",
+    "docs:check": "node ../scripts/sync-docs.mjs --check"
   },
   "dependencies": {
     "react": "^19.2.0",

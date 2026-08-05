@@ -29,9 +29,9 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./src/test-setup.ts'],
     css: true,
-    // e2e/ holds Playwright specs (npm run test:e2e), not Vitest ones — both
-    // use the *.spec.js suffix, so without this Vitest tries to collect them
-    // too and fails on the `@playwright/test` import.
-    exclude: ['**/node_modules/**', '**/dist/**', 'e2e/**'],
+    // tests/e2e/ holds Playwright specs (npm run test:e2e), not Vitest ones —
+    // both use the *.spec.js suffix, so without this Vitest tries to collect
+    // them too and fails on the `@playwright/test` import.
+    exclude: ['**/node_modules/**', '**/dist/**', 'tests/e2e/**'],
   },
 })

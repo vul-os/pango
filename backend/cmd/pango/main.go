@@ -253,7 +253,7 @@ func buildMux(srv *api.Server, wrapEnabled bool, nodePubKeyHex string) *http.Ser
 	if app := newAppHandler(); app != nil {
 		mux.Handle("/", app)
 	} else {
-		log.Printf("pango: no dist/ found; the app is not served (run `npm run build`)")
+		log.Printf("pango: no web/dist/ found; the app is not served (run `npm run build` in web/)")
 	}
 
 	// /.well-known/* is a namespace other software probes to discover this
