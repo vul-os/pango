@@ -77,6 +77,12 @@ jobs:
           node-version: 20
       - name: Install
         run: npm ci
+      # tsc --noEmit was defined in package.json but never called anywhere in
+      # CI — vite build/esbuild strip types without checking them, so a green
+      # build step proved only that the bundle emits, not that the code
+      # typechecks. This runs the existing script for real.
+      - name: Typecheck
+        run: npm run typecheck
       # site/docs/ is a generated mirror of docs/ (scripts/sync-docs.mjs) that
       # the docs viewer fetches at runtime. Nothing else re-runs the copy, so
       # editing docs/ without re-running it publishes stale text silently.
