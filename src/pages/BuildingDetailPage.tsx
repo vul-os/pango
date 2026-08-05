@@ -47,7 +47,10 @@ export default function BuildingDetailPage() {
     <div>
       <button
         type="button"
-        onClick={() => navigate('/buildings')}
+        // navigate() can return a Promise (react-router view-transition
+        // support); void makes the discard explicit for
+        // @typescript-eslint/no-misused-promises.
+        onClick={() => void navigate('/buildings')}
         className="mb-3 flex items-center gap-1 text-xs font-medium text-ink-muted hover:text-ink"
       >
         <ChevronLeftIcon width={14} height={14} />
@@ -76,7 +79,10 @@ export default function BuildingDetailPage() {
         <Card>
           <CardHeader title="Units" subtitle={`${(unitsQ.data || []).length} on record`} />
           <div className="p-4">
-            <form onSubmit={addUnit} className="mb-3 flex gap-2">
+            {/* addUnit fully catches its own errors and never rethrows, so
+                this fire-and-forget is safe — wrapped to make the discard
+                explicit for @typescript-eslint/no-misused-promises. */}
+            <form onSubmit={(e) => { void addUnit(e) }} className="mb-3 flex gap-2">
               <Input
                 value={unitLabel}
                 onChange={(e) => setUnitLabel(e.target.value)}
