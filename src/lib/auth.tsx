@@ -80,6 +80,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(async () => {
     try {
       await authApi.logout()
+    } catch {
+      // A failed /auth/logout call (network error, node unreachable, ...) is
+      // not fatal to the *client's* logout — applySession(null) below still
+      // clears local session state either way, so the user is signed out of
+      // this tab regardless. Before this catch, a rejected authApi.logout()
+      // propagated out of this async function; AppShell's `onClick={logout}`
+      // called it directly (not awaited), so the rejection surfaced as a
+      // genuine unhandled promise rejection rather than anything the UI
+      // reacted to — @typescript-eslint/no-misused-promises caught the
+      // mismatch, but this catch is the actual fix.
     } finally {
       applySession(null)
     }
