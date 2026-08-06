@@ -1,10 +1,18 @@
 # Pango and WRAP
 
 > [!WARNING]
-> **📐 Designed, not implemented.** There is no `wrap/` package in this
-> repository yet — no object encoding, no signing, no offer flow, no pool
-> client. This chapter specifies the binding so it can be reviewed against the
-> WRAP spec before code exists.
+> **Object model implemented; offer flow and pool client are not.**
+> `backend/internal/wrap/` (~3,340 lines) implements the WRAP object model —
+> CBOR encoding, content addressing, and Ed25519 signing for all six object
+> kinds — plus Pango's own `trades/v0` WorkOrder mapping and a conformance
+> test harness. It does not send or receive offers over the network, run a
+> pool client, or bind `Progress`/`Attestation` objects to Pango's own job
+> events — the only wired transport surface today is a
+> `/.well-known/wrap/identity` endpoint behind `--wrap`. The conformance
+> harness has nothing to check itself against: it dispatches by vector id
+> against `github.com/vul-os/wrap`'s conformance corpus, which this
+> repository does not vendor and which is not reachable from a pango-only
+> checkout, so every run currently skips. See §9 for the per-piece status.
 >
 > WRAP itself is a separate, independently specified protocol:
 > [`github.com/vul-os/wrap`](https://github.com/vul-os/wrap). Where this
@@ -159,11 +167,16 @@ platform. Pango nodes already generate exactly such a keypair on first run for
 sync ([CONFIGURATION.md](CONFIGURATION.md#identity--designed)).
 
 Whether the WRAP identity and the sync node key are the **same key** is an
-**open decision, not yet made.** Sharing one key is simpler and means a
-contractor has one identity everywhere; separating them limits blast radius if
-one is compromised and avoids correlating a node's sync peers with its public
-work history. This document will record the decision when it is made rather than
-letting the first implementation choose it by accident.
+**open decision, not yet deliberately made.** Sharing one key is simpler and
+means a contractor has one identity everywhere; separating them limits blast
+radius if one is compromised and avoids correlating a node's sync peers with
+its public work history. This document was meant to record the decision when
+it is made rather than letting the first implementation choose it by
+accident — but that has already half-happened: the `/.well-known/wrap/identity`
+endpoint wired in `main.go` serves `PublicKeyHex()`, the sync node's own key,
+because it was the identity value already at hand, not because same-key was
+chosen over separate-key. Treat the decision as still open and the current
+behaviour as the accident this paragraph warned about, not as its answer.
 
 `Attestation` objects are signed by counterparties and held by **both** sides, so
 a contractor's record travels with them. Leave a pool and your history comes
@@ -188,14 +201,14 @@ strengths is a sales page:
 
 | Piece | Status |
 |---|---|
-| Role and profile mapping (this document) | 📐 Designed |
-| `wrap/` package — object model, CBOR encoding, signing | 📐 Designed, no code |
-| Direct offers (`mode = 0`) | 📐 Designed, no code |
+| Role and profile mapping (this document) | ✅ Implemented — `pango.go`'s `JobToWorkOrder` / `JobFromWorkOrder` for `trades/v0` |
+| `wrap/` package — object model, CBOR encoding, signing | ✅ Implemented — `object.go`, `cbor.go`, `kinds.go` (~3,340 lines): canonical CBOR, content addressing, Ed25519 sign/verify for all six object kinds |
+| Direct offers (`mode = 0`) | 📐 Designed, no code — `Offer`/`Bid` encode and decode as objects, but nothing sends or receives one over the wire |
 | Pool client | 📐 Designed, no code |
-| `Progress` ⇄ job-event binding | 📐 Designed, no code |
-| `Attestation` ⇄ sign-off | 📐 Designed, no code |
-| WRAP identity ⇄ node key decision | **Open** |
-| Conformance against the WRAP test vectors | Not started |
+| `Progress` ⇄ job-event binding | 📐 Designed, no code — `Progress` encodes/decodes as an object; nothing binds it to a Pango job event |
+| `Attestation` ⇄ sign-off | 📐 Designed, no code — same gap as `Progress` |
+| WRAP identity ⇄ node key decision | **Still open** — not deliberately decided, but the wired `/.well-known/wrap/identity` endpoint already serves the sync node's own key regardless, which is the by-accident same-key outcome §7 warns against; see §7 |
+| Conformance against the WRAP test vectors | Harness implemented (`vectors_test.go`, dispatches 19 vectors by id plus 2 groups); the upstream vector corpus does not exist at a resolvable location — not vendored here, no reachable `github.com/vul-os/wrap` checkout, and not the same ids as kotva's `profiles/wrap/conformance/wrap_vectors.json` (25 unrelated ids) — so every run skips |
 
 WRAP support is **optional** and off by default
 (`PANGO_WRAP`). A Pango deployment that never sends work outside the
