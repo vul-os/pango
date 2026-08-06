@@ -162,6 +162,13 @@ jobs:
       # typechecks. This runs the existing script for real.
       - name: Typecheck
         run: npm run typecheck
+      # scripts/check-lint-config.mjs is the CI gate that proves lint
+      # type-awareness is actually live — the logic the Lint config step
+      # below is trusted through — yet was itself unchecked JavaScript.
+      # scripts/tsconfig.json (allowJs+checkJs) brings it under real tsc
+      # checking without a runtime rename; blocking, same as Typecheck.
+      - name: Typecheck (CI gate scripts)
+        run: npm run typecheck:scripts
       # site/docs/ is a generated mirror of docs/ (scripts/sync-docs.mjs) that
       # the docs viewer fetches at runtime. Nothing else re-runs the copy, so
       # editing docs/ without re-running it publishes stale text silently.
