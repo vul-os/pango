@@ -32,11 +32,14 @@ package substrate
 // # It never passes by doing nothing
 //
 // The vectors file is not in this repo, so this test needs a kotva checkout —
-// KOTVA_DIR, which CI sets from a checkout at the tag matching the engine version
-// in go.mod. Without it the test SKIPS, and the skip names how many vectors went
-// unverified and how to fix it. With PANGO_REQUIRE_SYNC_VECTORS=1 the skip
-// becomes a failure, which is how CI runs it: a guard that has quietly stopped
-// running looks exactly like one that passes.
+// KOTVA_DIR. CI's sync-vectors job (.github/workflows/ci.yml) sets it: it reads
+// the kotva version backend/go.mod requires, checks out vul-os/kotva at the
+// matching bindings/go/<version> tag (never main — a checkout at any other
+// commit would verify against a different frozen suite than the one linked
+// in), and points KOTVA_DIR at that checkout. Without it the test SKIPS, and
+// the skip names how many vectors went unverified and how to fix it. CI also
+// sets PANGO_REQUIRE_SYNC_VECTORS=1, which turns that skip into a failure: a
+// guard that has quietly stopped running looks exactly like one that passes.
 //
 // The three anti-vacuity checks are the other half, because `go test` printing
 // "ok" proves nothing on its own. Every vector must be claimed by a driver in the
