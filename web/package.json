@@ -18,6 +18,7 @@
     "build:all": "vite build && cd .. && cp -r site backend/cmd/pango/site && cp -r web/dist backend/cmd/pango/dist && cd backend && go build -tags embed_frontend -ldflags \"-X main.version=$npm_package_version\" -o pango ./cmd/pango && cd .. && rm -rf backend/cmd/pango/site backend/cmd/pango/dist",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
+    "typecheck:scripts": "tsc -p scripts/tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint .",
