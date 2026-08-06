@@ -55,13 +55,92 @@ jobs:
         run: go test ./...
       # `go test` prints nothing for a skipped test, so the WRAP conformance
       # harness could skip its entire vector set and this job would still be
-      # green with no trace. There is no vul-os/wrap checkout in CI, so it
-      # WILL skip; this step surfaces the harness's banner listing exactly
-      # which vectors went unverified. It does not fail the job — `make
-      # conformance` (WRAP_VECTORS_REQUIRED=1) is the gate for that, and it
-      # needs a wrap checkout to be meaningful.
+      # green with no trace. This step surfaces the harness's banner listing
+      # exactly which vectors went unverified. It does not fail the job, and
+      # it is NOT informational-pending-a-future-checkout: github.com/vul-os
+      # has no "wrap" repository at all (confirmed via `gh repo list vul-os`),
+      # wrap_vectors.json is not vendored anywhere in this repo, and it is not
+      # WRAP_VECTORS_PATH-able from any other checkout in CI either — so
+      # unlike the sync-vectors job below, there is no known way to make
+      # WRAP_VECTORS_REQUIRED=1 a real, non-vacuous gate here yet. Wire it for
+      # real once the vectors have a reachable home.
       - name: WRAP conformance status (informational)
         run: go test -count=1 -v -run TestConformanceVectors ./internal/wrap/
+
+  # ---------- Shared substrate engine: frozen SYNC conformance vectors ----------
+  # internal/sync/substrate runs the shared DMTAP-SYNC engine, and the whole
+  # justification for calling it that is this job: it drives all 24 of
+  # SYNC.md §10's frozen conformance vectors through the engine the binary
+  # links and compares the results against the values the spec froze.
+  #
+  # Separate job (not a step in `go` above) because it needs a second
+  # checkout — the vectors live in vul-os/kotva, not here — and because a red
+  # tick on THIS job has a specific meaning: the engine's algebra moved, or
+  # the vectors moved, and Pango's merge semantics are downstream of both.
+  # Mirrors the pattern beepbite's sync-vectors job already uses for the same
+  # upstream engine.
+  sync-vectors:
+    name: DMTAP-SYNC conformance vectors
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      # Read the engine's version out of go.mod rather than duplicating it
+      # here, so the pin stays written down where the toolchain enforces it.
+      # kotva tags its Go submodule as bindings/go/<version>, and the vectors
+      # at that tag are the ones the engine in that version was proved
+      # against — checking out kotva at any other ref would verify against a
+      # different frozen suite than the one actually linked in.
+      - name: Resolve the engine's pinned version
+        id: pin
+        working-directory: backend
+        run: |
+          ver="$(go list -m -f '{{.Version}}' github.com/vul-os/kotva/bindings/go)"
+          if [ -z "$ver" ]; then
+            echo "::error::backend/go.mod does not require github.com/vul-os/kotva/bindings/go"
+            exit 1
+          fi
+          echo "ref=bindings/go/$ver" >> "$GITHUB_OUTPUT"
+          echo "engine module version: $ver"
+
+      # vul-os/kotva is public, so this needs no token. If it ever fails the
+      # job fails — which is the point: no vector cross-check, no green tick.
+      - name: Check out the substrate repo at the engine's tag
+        uses: actions/checkout@v4
+        with:
+          repository: vul-os/kotva
+          ref: ${{ steps.pin.outputs.ref }}
+          path: .upstream-kotva
+
+      # PANGO_REQUIRE_SYNC_VECTORS turns the driver's "no checkout, so
+      # nothing was verified" skip into a failure. A guard that has quietly
+      # stopped running looks identical, from a green run, to one that works
+      # — this is the hard gate, no continue-on-error and no `|| true`.
+      - name: Drive the frozen vectors
+        working-directory: backend
+        env:
+          KOTVA_DIR: ${{ github.workspace }}/.upstream-kotva
+          PANGO_REQUIRE_SYNC_VECTORS: '1'
+        run: |
+          set -euo pipefail
+          go test ./internal/sync/substrate/ -run TestFrozenSyncVectors -v | tee /tmp/vectors.out
+
+      # Exit 0 is not the assertion by itself: a driver that recognised no
+      # vectors, or a -run pattern matching nothing, both exit 0. The count
+      # is checked here as well as inside the test, and written out so a
+      # reader of the log can see what was actually covered.
+      - name: Assert all 24 vectors were driven
+        run: |
+          set -euo pipefail
+          if ! grep -q 'drove all 24 frozen SYNC conformance vectors' /tmp/vectors.out; then
+            echo "::error::the conformance driver did not report driving all 24 vectors"
+            exit 1
+          fi
+          echo "24/24 frozen SYNC conformance vectors driven"
 
   frontend:
     name: Frontend (docs, test, lint, build)
