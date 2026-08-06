@@ -368,12 +368,22 @@ func TestJobWorkOrderRoundTrip(t *testing.T) {
 	}
 }
 
+// specMaxEnvelopeSize is 03-wire-format.md §4.6's own literal — "MUST reject
+// any WRAP object larger than 65 536 bytes" — spelled out independently of
+// object.go's maxEnvelopeSize constant. TestDecodeSizeFloor below builds its
+// boundary envelopes from this literal, not from maxEnvelopeSize, and
+// separately asserts the two agree: a test that measured the boundary
+// relative to the very constant under test would stay green even if that
+// constant drifted away from the spec (e.g. someone "fixes" a false-positive
+// rejection by loosening the limit instead of the actual bug) — only a
+// hardcoded, independent expected value catches that.
+const specMaxEnvelopeSize = 65536
+
 // TestDecodeSizeFloor pins the §4.6 / ERR_TOO_LARGE size floor Decode
-// enforces (03-wire-format.md §4.6, object.go's maxEnvelopeSize) at its
-// exact boundary rather than at some comfortably-oversized value: an
-// off-by-one on a "MUST reject any object larger than N" rule is the classic
-// bug, and only a test built at N itself, not N+lots, can catch admitting
-// N+1 or rejecting N.
+// enforces at its exact boundary rather than at some comfortably-oversized
+// value: an off-by-one on a "MUST reject any object larger than N" rule is
+// the classic bug, and only a test built at N itself, not N+lots, can catch
+// admitting N+1 or rejecting N.
 //
 // This is a plain committed unit test with no dependency on the WRAP
 // conformance vector corpus (see vectors_test.go's package doc) — that
@@ -382,19 +392,23 @@ func TestJobWorkOrderRoundTrip(t *testing.T) {
 // vector with that id at all, so nothing else in this package would notice
 // if the size floor regressed.
 func TestDecodeSizeFloor(t *testing.T) {
+	if maxEnvelopeSize != specMaxEnvelopeSize {
+		t.Fatalf("maxEnvelopeSize = %d, want %d per 03-wire-format.md §4.6", maxEnvelopeSize, specMaxEnvelopeSize)
+	}
+
 	t.Run("exactly at the limit is not rejected for size", func(t *testing.T) {
-		env := make([]byte, maxEnvelopeSize)
+		env := make([]byte, specMaxEnvelopeSize)
 		_, err := Decode(env)
 		if errors.Is(err, ErrTooLarge) {
-			t.Fatalf("a %d-byte envelope (exactly maxEnvelopeSize) was rejected as ErrTooLarge; the floor must admit the limit itself, not just values strictly below it", len(env))
+			t.Fatalf("a %d-byte envelope (exactly the §4.6 limit) was rejected as ErrTooLarge; the floor must admit the limit itself, not just values strictly below it", len(env))
 		}
 	})
 
 	t.Run("one byte over the limit is rejected", func(t *testing.T) {
-		env := make([]byte, maxEnvelopeSize+1)
+		env := make([]byte, specMaxEnvelopeSize+1)
 		_, err := Decode(env)
 		if !errors.Is(err, ErrTooLarge) {
-			t.Fatalf("a %d-byte envelope (maxEnvelopeSize+1) got %v, want ErrTooLarge", len(env), err)
+			t.Fatalf("a %d-byte envelope (§4.6 limit + 1) got %v, want ErrTooLarge", len(env), err)
 		}
 	})
 
@@ -411,8 +425,8 @@ func TestDecodeSizeFloor(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if len(env) >= maxEnvelopeSize {
-			t.Fatalf("test envelope is %d bytes, expected well under maxEnvelopeSize so this actually exercises the happy path, not the boundary", len(env))
+		if len(env) >= specMaxEnvelopeSize {
+			t.Fatalf("test envelope is %d bytes, expected well under the §4.6 limit so this actually exercises the happy path, not the boundary", len(env))
 		}
 		if _, err := Decode(env); err != nil {
 			t.Fatalf("a small, validly signed envelope must decode: %v", err)
