@@ -26,7 +26,28 @@ var (
 	// package enforces outside of Decode, since it needs the referenced
 	// WorkOrder for context a bare decode does not have.
 	ErrNotIssuer = errors.New("wrap: assignment author is not the work order's issuer")
+	// ErrTooLarge means the envelope exceeds maxEnvelopeSize
+	// (03-wire-format.md §4.6 / ERR_TOO_LARGE, 0x0105). Work orders describe
+	// work; they do not carry payloads, so an oversized envelope is treated
+	// as attacker-supplied rather than a legitimate large object — this is
+	// checked first in Decode, before any CBOR parsing, so a caller does not
+	// pay the cost of decoding an envelope it is going to reject anyway.
+	ErrTooLarge = errors.New("wrap: envelope exceeds maximum size")
 )
+
+// maxEnvelopeSize is the size floor 03-wire-format.md §4.6 sets: "An
+// implementation MUST reject any WRAP object larger than 65 536 bytes with
+// ERR_TOO_LARGE." Checked against the whole envelope Decode receives
+// (canonical_bytes plus its detached signature and CBOR array framing) rather
+// than canonical_bytes alone, so the check runs before any CBOR parsing at
+// all — the point of a size floor is to bound the cost of handling untrusted
+// input, and that cost starts at parse time, not once the object is unwrapped.
+// The signature plus framing add on the order of 70 bytes on top of
+// canonical_bytes, so an object within ~70 bytes of the limit could in theory
+// be rejected a step earlier than a canonical_bytes-only reading of §4.6 would
+// place it; nothing in this codebase constructs objects anywhere near that
+// boundary on purpose.
+const maxEnvelopeSize = 65536
 
 // Kind identifies one of WRAP's six object kinds (02-objects.md §3.1). Kinds
 // 0x40-0x7f are reserved for profile-specific objects and 0x80+ for future
@@ -179,10 +200,13 @@ func (o *Object) Envelope() ([]byte, error) {
 	return Encode([]any{canon, o.Sig})
 }
 
-// Decode parses and verifies a signed envelope, in the order 04-signing.md
-// §5.4 requires: canonical decoding, key-0 rejection (handled by the CBOR
-// layer), format version, id recomputation, signature. It does NOT apply the
-// per-kind authorship rule (§5.5) — that needs context (e.g. the WorkOrder an
+// Decode parses and verifies a signed envelope. It checks the §4.6 size floor
+// first — before canonical decoding, key-0 rejection (handled by the CBOR
+// layer), format version, id recomputation, and signature, which is the order
+// 04-signing.md §5.4 requires for those five — because the size floor exists
+// to bound the cost of handling untrusted input, which only holds if it is
+// checked before that input is parsed at all. It does NOT apply the per-kind
+// authorship rule (§5.5) — that needs context (e.g. the WorkOrder an
 // Assignment refers to) that a bare decode does not have; see
 // VerifyAssignmentAuthor.
 //
@@ -192,6 +216,9 @@ func (o *Object) Envelope() ([]byte, error) {
 // silently at the point a caller dispatches on kind, not rejected here
 // (§4.4); ignore Kind values this package does not know how to render.
 func Decode(envelope []byte) (*Object, error) {
+	if len(envelope) > maxEnvelopeSize {
+		return nil, ErrTooLarge
+	}
 	v, err := DecodeCBOR(envelope)
 	if err != nil {
 		return nil, err

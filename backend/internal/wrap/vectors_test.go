@@ -477,6 +477,8 @@ func errorCode(err error) string {
 		return "0x0102"
 	case errors.Is(err, ErrBadSignature):
 		return "0x0104"
+	case errors.Is(err, ErrTooLarge):
+		return "0x0105"
 	case errors.Is(err, ErrUnsupportedVersion):
 		return "0x0106"
 	case errors.Is(err, ErrNotIssuer):
