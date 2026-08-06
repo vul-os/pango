@@ -3,6 +3,7 @@ package wrap
 import (
 	"bytes"
 	"crypto/ed25519"
+	"errors"
 	"fmt"
 	"testing"
 
@@ -365,4 +366,56 @@ func TestJobWorkOrderRoundTrip(t *testing.T) {
 	if parsedWO.Refs[RefBuildingID] != job.BuildingID {
 		t.Errorf("refs[building_id] = %q, want %q", parsedWO.Refs[RefBuildingID], job.BuildingID)
 	}
+}
+
+// TestDecodeSizeFloor pins the §4.6 / ERR_TOO_LARGE size floor Decode
+// enforces (03-wire-format.md §4.6, object.go's maxEnvelopeSize) at its
+// exact boundary rather than at some comfortably-oversized value: an
+// off-by-one on a "MUST reject any object larger than N" rule is the classic
+// bug, and only a test built at N itself, not N+lots, can catch admitting
+// N+1 or rejecting N.
+//
+// This is a plain committed unit test with no dependency on the WRAP
+// conformance vector corpus (see vectors_test.go's package doc) — that
+// corpus's own reject-oversize case is unreachable from a pango-only
+// checkout, and the upstream vectors this repo can actually load carry no
+// vector with that id at all, so nothing else in this package would notice
+// if the size floor regressed.
+func TestDecodeSizeFloor(t *testing.T) {
+	t.Run("exactly at the limit is not rejected for size", func(t *testing.T) {
+		env := make([]byte, maxEnvelopeSize)
+		_, err := Decode(env)
+		if errors.Is(err, ErrTooLarge) {
+			t.Fatalf("a %d-byte envelope (exactly maxEnvelopeSize) was rejected as ErrTooLarge; the floor must admit the limit itself, not just values strictly below it", len(env))
+		}
+	})
+
+	t.Run("one byte over the limit is rejected", func(t *testing.T) {
+		env := make([]byte, maxEnvelopeSize+1)
+		_, err := Decode(env)
+		if !errors.Is(err, ErrTooLarge) {
+			t.Fatalf("a %d-byte envelope (maxEnvelopeSize+1) got %v, want ErrTooLarge", len(env), err)
+		}
+	})
+
+	t.Run("a normal small envelope still decodes", func(t *testing.T) {
+		pub, priv := genKey(t)
+		var author [32]byte
+		copy(author[:], pub)
+
+		wo := testWorkOrder(t, author)
+		if err := wo.Sign(priv); err != nil {
+			t.Fatal(err)
+		}
+		env, err := wo.Envelope()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(env) >= maxEnvelopeSize {
+			t.Fatalf("test envelope is %d bytes, expected well under maxEnvelopeSize so this actually exercises the happy path, not the boundary", len(env))
+		}
+		if _, err := Decode(env); err != nil {
+			t.Fatalf("a small, validly signed envelope must decode: %v", err)
+		}
+	})
 }
