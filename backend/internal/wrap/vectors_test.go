@@ -15,8 +15,9 @@ package wrap
 // notCoveredGroups below are therefore marked NOT-COVERED here, not silently
 // passed and not silently dropped: every vector in the file gets a subtest,
 // and every subtest's outcome is one of PASS, SKIP (not-covered, by design),
-// or SKIP (documented gap — the implementation currently disagrees with the
-// spec; see the reject-oversize case).
+// or SKIP (documented gap — the implementation disagrees with the spec; see
+// the reject-oversize case, which currently complies and is kept as this
+// category's tripwire rather than as a live gap).
 //
 // WHERE THE VECTORS COME FROM, AND WHAT HAPPENS WHEN THEY ARE ABSENT
 //
@@ -890,8 +891,22 @@ func runReject(t *testing.T, vf *vectorsFile, v map[string]any) (string, string)
 		}
 		_, decErr := Decode(env)
 		if decErr == nil {
+			// Decode now enforces the §4.6 limit itself (object.go's
+			// maxEnvelopeSize / ErrTooLarge), so for an envelope this size
+			// this arm should be unreachable today; it stays as a tripwire
+			// in case that check ever regresses. The currently-running
+			// proof of compliance is TestDecodeSizeFloor in wrap_test.go,
+			// not this vector — the upstream corpus that would carry a
+			// "reject-oversize" id has no known vector by that name (see
+			// this file's top-of-package comment on where vectors come
+			// from), so this case has never actually executed. It stays
+			// listed in knownGapVectorIDs as a presence tripwire: if such
+			// a vector ever does appear upstream, the harness will run it
+			// rather than silently drop it, and the case above confirms it
+			// now gets the right ERR_TOO_LARGE verdict rather than
+			// re-asserting a gap that no longer exists.
 			return "GAP", fmt.Sprintf(
-				"04-signing.md §5.4 / 03-wire-format.md §4.6 require ERR_TOO_LARGE for any envelope over 65536 bytes; this envelope is %d bytes and Decode() accepted it with no error at all. internal/wrap performs no size check anywhere in the decode path.",
+				"04-signing.md §5.4 / 03-wire-format.md §4.6 require ERR_TOO_LARGE for any envelope over 65536 bytes; this envelope is %d bytes and Decode() accepted it with no error at all.",
 				len(env))
 		}
 		// If it ever DOES start rejecting oversize objects, confirm it's the right code.
