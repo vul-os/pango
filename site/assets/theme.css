@@ -311,7 +311,12 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 0; }
   transition: transform .2s cubic-bezier(.2,.8,.3,1);
 }
 .nav-links a:hover { color: var(--ink); }
-.nav-links a:hover::after { transform: scaleX(1); }@media (max-width: 900px) { .nav-links { display: none; } }
+.nav-links a:hover::after { transform: scaleX(1); }
+/* GitHub: the mark carries the link on its own, so the anchor is sized by the
+   glyph rather than by a word. It keeps the same colour and underline-on-hover
+   as its lettered neighbours. */
+.nav-links a.gh { display: inline-flex; align-items: center; }
+.nav-links a.gh svg { display: block; }@media (max-width: 900px) { .nav-links { display: none; } }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
 
