@@ -315,7 +315,11 @@ hr.rule { border: none; border-top: 1px solid var(--rule); margin: 0; }
 /* GitHub: the mark carries the link on its own, so the anchor is sized by the
    glyph rather than by a word. It keeps the same colour and underline-on-hover
    as its lettered neighbours. */
-.nav-links a.gh { display: inline-flex; align-items: center; }
+.nav-links a.gh { display: inline-flex; align-items: center;
+  /* 1.62em is the inherited line box the lettered links stand on. Without it
+     the anchor shrinks to the glyph and its hover underline rides ~5px above
+     theirs. */
+  min-height: calc(1.62em + 8px); }
 .nav-links a.gh svg { display: block; }@media (max-width: 900px) { .nav-links { display: none; } }
 
 /* ── Cards ───────────────────────────────────────────────────────────────── */
